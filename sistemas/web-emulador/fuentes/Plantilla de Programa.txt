@@ -1,0 +1,51 @@
+# *************************************
+# Plantilla de programa para tu lenguaje
+# *************************************
+
+# Declaración de variables en líneas separadas
+entero i
+entero j
+real r1
+real r2
+caracter c1
+caracter c2
+booleano b1
+booleano b2
+
+# Inicialización con valores directos
+i := 3
+j := 5
+r1 := 1.5
+r2 := 2.0
+c1 := 'a'
+c2 := 'b'
+b1 := verdadero
+b2 := falso
+
+# Bucle mientras
+mientras i > 0
+    # Operaciones binarias con enteros y reales
+    j := j + i
+    r1 := r1 + r2
+
+    # Operaciones binarias combinadas (solo dos operandos)
+    r2 := r2 - r1
+
+    # Impresión de valores
+    imprimir "Valores en el bucle:", i, j, r1, r2
+
+    # Decrementar contador
+    i := i - 1
+fin
+
+# Bucle para
+para j := 1 hasta 5 paso 1
+    # Operaciones binarias
+    r1 := r1 * r2
+    imprimir "Bucle para:", j, r1
+finpara
+
+# Impresión final
+imprimir "Caracteres:", c1, c2
+imprimir "Booleanos:", b1, b2
+imprimir "Fin del programa"

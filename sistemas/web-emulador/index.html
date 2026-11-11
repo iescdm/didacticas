@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compilador-Emulador Educativo</title>
+  <link rel="icon" href="img/chan.png">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <header class="cabecera">
+    <img class="logo" src="img/chan.png" alt="Logotipo del IES Chan do Monte">
+    <div class="titulo">
+      <h1>Compilador-Emulador Educativo</h1>
+      <p>Departamento de Informática · IES Chan do Monte (Marín)</p>
+    </div>
+    <nav class="pestanas" role="tablist" aria-label="Vistas">
+      <button id="pestana-compilador" role="tab" aria-selected="true" aria-controls="vista-compilador">Compilador</button>
+      <button id="pestana-emulador" role="tab" aria-selected="false" aria-controls="vista-emulador">Emulador</button>
+      <button id="pestana-cpu" role="tab" aria-selected="false" aria-controls="vista-cpu">CPU</button>
+    </nav>
+    <button id="abrir-ayuda" title="Ayuda sobre lo que estás usando (F1)">Ayuda</button>
+    <button id="restablecer" title="Borra todo lo guardado en este navegador">Restablecer</button>
+  </header>
+
+  <main>
+    <section id="vista-compilador" class="vista" role="tabpanel" aria-labelledby="pestana-compilador">
+      <div class="barra">
+        <label class="campo">Ejemplo
+          <select id="ejemplos"></select>
+        </label>
+        <button id="nuevo">Nuevo</button>
+        <button id="abrir-fuente" title="Abrir un programa fuente .txt">Abrir</button>
+        <button id="guardar-fuente" title="Guardar el programa fuente como .txt">Guardar</button>
+        <span class="separador"></span>
+        <button id="compilar" class="principal">Compilar</button>
+        <div class="segmentos" role="radiogroup" aria-label="Formato de salida">
+          <label><input type="radio" name="formato" id="formato-asm" value="ASM" checked><span>ASM</span></label>
+          <label><input type="radio" name="formato" id="formato-hex" value="HEX"><span>HEX</span></label>
+        </div>
+        <span class="separador"></span>
+        <button id="gramatica">Gramática</button>
+        <button id="guardar-compilado" title="Guardar el ensamblador como .asm">Guardar compilado</button>
+        <button id="enviar" class="principal">Cargar en el emulador</button>
+      </div>
+
+      <div id="zona-codigo" class="columnas">
+        <div class="panel">
+          <h2>Código fuente</h2>
+          <div class="editor">
+            <pre id="numeros" class="numeros" aria-hidden="true"></pre>
+            <div class="area">
+              <pre id="resaltado" class="capa" aria-hidden="true"></pre>
+              <textarea id="fuente" class="capa" spellcheck="false" autocomplete="off"
+                        aria-label="Código fuente" placeholder="Escribe aquí tu programa..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="divisor-codigo" class="divisor" role="separator" tabindex="0"
+             aria-orientation="vertical" aria-label="Ajustar el ancho de código fuente y código compilado"></div>
+        <div class="panel">
+          <h2>Código compilado</h2>
+          <pre id="compilado" class="salida-codigo" tabindex="0" aria-label="Código compilado"></pre>
+        </div>
+      </div>
+      <p id="estado" class="estado" role="status"></p>
+    </section>
+
+    <section id="vista-emulador" class="vista" role="tabpanel" aria-labelledby="pestana-emulador" hidden>
+      <div class="barra">
+        <button id="abrir-programa" title="Abrir un programa ensamblador .asm">Abrir</button>
+        <button id="ejecutar" class="principal">Ejecutar programa</button>
+        <button id="paso">Paso a paso</button>
+        <button id="reiniciar">Reiniciar</button>
+        <button id="limpiar">Limpiar salida</button>
+        <label class="campo"><input type="checkbox" id="debug"> Debug</label>
+      </div>
+
+      <form id="consola" class="consola">
+        <label for="comando">&gt;</label>
+        <input id="comando" autocomplete="off" spellcheck="false"
+               placeholder="Escribe un comando y pulsa Intro (help para ver la lista)">
+      </form>
+
+      <div id="zona-maquina" class="maquina">
+        <div class="panel">
+          <h2>Memoria <small>256 celdas</small></h2>
+          <div id="zona-memoria" class="memoria-zonas">
+            <div class="memoria-zona">
+              <h3>Programa <small>amarillo: ejecutada · barra azul: siguiente</small></h3>
+              <div id="memoria" class="memoria" tabindex="0" aria-label="Memoria: programa"></div>
+            </div>
+            <div id="divisor-zonas" class="divisor divisor-fila" role="separator" tabindex="0"
+                 aria-orientation="horizontal" aria-label="Ajustar el alto de programa y datos"></div>
+            <div class="memoria-zona">
+              <h3>Datos <small>naranja: última celda leída o escrita</small></h3>
+              <div id="memoria-datos" class="memoria" tabindex="0" aria-label="Memoria: datos"></div>
+            </div>
+          </div>
+        </div>
+        <div id="divisor-memoria" class="divisor" role="separator" tabindex="0"
+             aria-orientation="vertical" aria-label="Ajustar el ancho de memoria y registros"></div>
+        <div class="panel">
+          <h2>Registros</h2>
+          <div id="registros" class="registros" tabindex="0" aria-label="Registros"></div>
+        </div>
+        <div id="divisor-salida" class="divisor divisor-fila" role="separator" tabindex="0"
+             aria-orientation="horizontal" aria-label="Ajustar el alto de la salida"></div>
+        <div class="panel panel-salida">
+          <h2>Salida</h2>
+          <div id="salida" class="salida" tabindex="0" role="log" aria-label="Salida del emulador"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-cpu" class="vista" role="tabpanel" aria-labelledby="pestana-cpu" hidden>
+      <div class="barra">
+        <button id="cpu-micro" class="principal">Siguiente micropaso</button>
+        <button id="cpu-instruccion">Instrucción completa</button>
+        <button id="cpu-reproducir">Reproducir</button>
+        <button id="cpu-reiniciar">Reiniciar</button>
+        <label class="campo">Velocidad
+          <input type="range" id="cpu-velocidad" min="1" max="5" step="1" value="3">
+        </label>
+        <div id="cpu-fases" class="fases" aria-label="Fase del ciclo">
+          <span data-fase="Captación">Captación</span>
+          <span data-fase="Decodificación">Decodificación</span>
+          <span data-fase="Ejecución">Ejecución</span>
+        </div>
+      </div>
+
+      <div class="cpu">
+        <div class="panel cpu-diagrama">
+          <svg id="cpu-esquema" viewBox="0 0 1100 550" preserveAspectRatio="xMidYMin meet" role="img"
+               aria-label="Esquema de la CPU, la memoria y la salida, unidas por los buses"></svg>
+        </div>
+        <div class="panel cpu-detalle">
+          <h2>Qué está pasando</h2>
+          <div class="cpu-explicacion" role="status">
+            <p id="cpu-instruccion-actual" class="cpu-instruccion"></p>
+            <p id="cpu-rtl" class="cpu-rtl"></p>
+            <p id="cpu-texto"></p>
+            <ol id="cpu-lista" class="cpu-lista"></ol>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dialogo">
+    <h2 id="dialogo-titulo">Gramática</h2>
+    <pre id="dialogo-texto"></pre>
+    <form method="dialog"><button>Cerrar</button></form>
+  </dialog>
+
+  <dialog id="ayuda" aria-labelledby="ayuda-titulo">
+    <div id="ayuda-cabecera" class="ayuda-cabecera" title="Arrastra para mover la ventana; doble clic para centrarla">
+      <h2 id="ayuda-titulo">Ayuda</h2>
+      <form method="dialog"><button>Cerrar</button></form>
+    </div>
+    <nav id="ayuda-indice" class="ayuda-indice" aria-label="Secciones de la ayuda">
+      <button data-seccion="inicio">Primeros pasos</button>
+      <button data-seccion="lenguaje">Lenguaje</button>
+      <button data-seccion="compilador">Compilador</button>
+      <button data-seccion="emulador">Emulador</button>
+      <button data-seccion="consola">Consola</button>
+      <button data-seccion="cpu">CPU</button>
+      <button data-seccion="instrucciones">Instrucciones</button>
+    </nav>
+    <div id="ayuda-cuerpo" class="ayuda-cuerpo" tabindex="0">
+      <section data-seccion="inicio">
+        <h3>Primeros pasos</h3>
+        <p>Esta aplicación convierte un programa escrito en español en instrucciones de una máquina sencilla, y te deja ver cómo las ejecuta.</p>
+        <ol>
+          <li>En <b>Compilador</b>, elige un ejemplo o escribe tu programa.</li>
+          <li>Pulsa <b>Compilar</b> para ver el ensamblador que se genera.</li>
+          <li>Pulsa <b>Cargar en el emulador</b>.</li>
+          <li>Pulsa <b>Ejecutar programa</b> para verlo entero, o <b>Paso a paso</b> para avanzar de instrucción en instrucción.</li>
+          <li>Abre <b>CPU</b> para ver qué ocurre dentro del procesador en cada instrucción.</li>
+        </ol>
+        <h4>Tu trabajo se guarda</h4>
+        <p>La página recuerda el código, el programa cargado y la disposición, pero solo en este navegador y este equipo. Para llevarte un programa a otro sitio, usa <b>Guardar</b>. El botón <b>Restablecer</b> borra todo lo recordado.</p>
+        <h4>Ajustar los paneles</h4>
+        <p>Arrastra los separadores entre paneles para cambiar su tamaño. Un doble clic los devuelve a su posición inicial.</p>
+        <h4>Esta ayuda</h4>
+        <p>Pulsa <b>Ayuda</b> o <kbd>F1</kbd> y se abrirá en lo que estés usando: por ejemplo, en la consola si estás escribiendo un comando, o en el lenguaje si tu programa tiene un error. Arrastra su barra superior para moverla, y con un doble clic vuelve al centro.</p>
+      </section>
+
+      <section data-seccion="lenguaje">
+        <h3>Lenguaje</h3>
+        <p>Cada sentencia va en su propia línea. Este programa usa casi todo el lenguaje:</p>
+        <pre data-ejemplo="Total grande: 4.50">entero i := 1
+real total := 0.0
+
+# Los comentarios van en su propia línea
+mientras i &lt;= 3
+    total := total + 1.5
+    i := i + 1
+fin
+
+si total &gt; 4.0
+    imprimir "Total grande:", total
+sino
+    imprimir "Total pequeño:", total
+finsi</pre>
+        <h4>Variables</h4>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Tipo</th><th>Ejemplo</th></tr>
+          <tr><td><code>entero</code></td><td><code>entero edad := 15</code></td></tr>
+          <tr><td><code>real</code></td><td><code>real nota := 7.5</code></td></tr>
+          <tr><td><code>caracter</code></td><td><code>caracter letra := 'A'</code></td></tr>
+          <tr><td><code>booleano</code></td><td><code>booleano listo := verdadero</code></td></tr>
+        </table></div>
+        <p>Una variable que no declares será entera. Hay 8 registros para enteros, caracteres y booleanos, y otros 8 para reales. Las constantes de las operaciones también ocupan registros.</p>
+        <h4>Operaciones</h4>
+        <p>Solo dos operandos por operación, sin paréntesis:</p>
+        <pre data-ejemplo="7 verdad: true">entero a := 3
+entero b := 4
+entero suma
+booleano mayor
+suma := a + b
+mayor := suma &gt; 5
+imprimir suma, "verdad:", mayor</pre>
+        <p>Operadores: <code>+ - * /</code> y las comparaciones <code>&lt; &gt; &lt;= &gt;= == !=</code>. Para calcular <code>a + b + c</code>, hazlo en dos líneas.</p>
+        <h4>Bloques</h4>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Bloque</th><th>Forma</th></tr>
+          <tr><td>Condición</td><td><code>si a &lt; 10</code> … <code>sino</code> … <code>finsi</code></td></tr>
+          <tr><td>Bucle con condición</td><td><code>mientras a &lt; 10</code> … <code>fin</code></td></tr>
+          <tr><td>Bucle con contador</td><td><code>para i := 1 hasta 5 paso 2</code> … <code>finpara</code></td></tr>
+        </table></div>
+        <p>Cada condición lleva una sola comparación y empieza por una variable. En <code>para</code>, el inicio, el final y el paso son números enteros; <code>paso</code> es opcional. No se puede comparar con un carácter como <code>'E'</code>.</p>
+        <pre data-ejemplo="1|3|5">entero i
+para i := 1 hasta 5 paso 2
+    imprimir i
+finpara</pre>
+      </section>
+
+      <section data-seccion="compilador">
+        <h3>Pestaña Compilador</h3>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Control</th><th>Para qué sirve</th></tr>
+          <tr><td><b>Ejemplo</b></td><td>Carga un programa de muestra.</td></tr>
+          <tr><td><b>Nuevo</b></td><td>Vacía el editor.</td></tr>
+          <tr><td><b>Abrir / Guardar</b></td><td>Lee o guarda tu programa en un fichero <code>.txt</code>.</td></tr>
+          <tr><td><b>Compilar</b></td><td>Traduce el programa. Si hay un error, indica la línea.</td></tr>
+          <tr><td><b>ASM / HEX</b></td><td>Muestra el resultado como ensamblador o como bytes en hexadecimal.</td></tr>
+          <tr><td><b>Gramática</b></td><td>Muestra los tokens en que se divide cada línea.</td></tr>
+          <tr><td><b>Guardar compilado</b></td><td>Guarda el ensamblador en un fichero <code>.asm</code>.</td></tr>
+          <tr><td><b>Cargar en el emulador</b></td><td>Compila y lleva el programa a la memoria de la máquina.</td></tr>
+        </table></div>
+      </section>
+
+      <section data-seccion="emulador">
+        <h3>Pestaña Emulador</h3>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Control</th><th>Para qué sirve</th></tr>
+          <tr><td><b>Abrir</b></td><td>Carga un fichero <code>.asm</code>.</td></tr>
+          <tr><td><b>Ejecutar programa</b></td><td>Lo ejecuta entero, desde el principio.</td></tr>
+          <tr><td><b>Paso a paso</b></td><td>Ejecuta una sola instrucción.</td></tr>
+          <tr><td><b>Reiniciar</b></td><td>Vuelve al principio y borra registros y datos.</td></tr>
+          <tr><td><b>Debug</b></td><td>Añade a la salida detalles de cada operación.</td></tr>
+        </table></div>
+        <h4 id="ayuda-memoria">Memoria</h4>
+        <p>Tiene 256 celdas: una por cada línea del programa, y después los datos.</p>
+        <ul>
+          <li><b>Programa:</b> en amarillo, la instrucción ejecutada; con barra azul, la siguiente.</li>
+          <li><b>Datos:</b> en naranja, la última celda leída o escrita.</li>
+        </ul>
+        <h4 id="ayuda-registros">Registros</h4>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Registro</th><th>Qué guarda</th></tr>
+          <tr><td><code>PC</code></td><td>La dirección de la siguiente instrucción.</td></tr>
+          <tr><td><code>IR</code></td><td>La instrucción en curso.</td></tr>
+          <tr><td><code>MAR</code></td><td>La dirección de memoria a la que se accede.</td></tr>
+          <tr><td><code>AC</code></td><td>El resultado de la última operación.</td></tr>
+          <tr><td><code>SR</code></td><td>El resultado de <code>cmp</code>: -1 menor, 0 igual, 1 mayor.</td></tr>
+          <tr><td><code>R1</code>-<code>R10</code></td><td>Enteros, caracteres y booleanos.</td></tr>
+          <tr><td><code>F1</code>-<code>F10</code></td><td>Reales, con sus bits de signo, exponente y mantisa.</td></tr>
+        </table></div>
+        <h4>Consola</h4>
+        <p>Debajo de la barra de botones puedes escribir instrucciones y comandos. Están explicados en la sección <b>Consola</b> de esta ayuda.</p>
+      </section>
+
+      <section data-seccion="consola">
+        <h3>Consola</h3>
+        <p>Está en la pestaña <b>Emulador</b>. Escribe un comando y pulsa <kbd>Intro</kbd>. Con <kbd>↑</kbd> y <kbd>↓</kbd> recuperas comandos anteriores, y con <kbd>Tab</kbd> se completan. Los comandos <code>help</code> y <code>comandos</code> muestran estas listas en la propia salida.</p>
+        <h4>Comandos que generan programas</h4>
+        <p>Crean un programa, enseñan su ensamblador y lo dejan en memoria, sustituyendo al que hubiera. Si quieres saber cómo funciona una instrucción, sigue uno con <b>Paso a paso</b>. Después puedes pulsar <b>Ejecutar programa</b> o <b>Paso a paso</b>, escribir <code>run</code> o abrir <b>CPU</b>.</p>
+        <div class="ayuda-tabla"><table id="ayuda-generadores">
+          <tr><th>Comando</th><th>Qué hace</th></tr>
+        </table></div>
+        <h4>Comandos de la máquina</h4>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Comando</th><th>Qué hace</th></tr>
+          <tr><td><code>help</code></td><td>Muestra todos los comandos.</td></tr>
+          <tr><td><code>comandos</code></td><td>Muestra los comandos que generan programas.</td></tr>
+          <tr><td><code>run</code></td><td>Ejecuta el programa cargado.</td></tr>
+          <tr><td><code>clear reg</code></td><td>Pone a cero los registros.</td></tr>
+          <tr><td><code>clear mem</code></td><td>Vacía la memoria.</td></tr>
+          <tr><td><code>set r1 10</code></td><td>Da un valor a un registro.</td></tr>
+          <tr><td><code>storeinstr [30] add R1 R2</code></td><td>Guarda una instrucción en una celda.</td></tr>
+        </table></div>
+        <h4>Instrucciones sueltas</h4>
+        <p>También puedes ejecutar una instrucción, como <code>add R1 R2</code>, <code>load R1 #5</code> o <code>print "Hola"</code>; están en la sección <b>Instrucciones</b>. Se admite en hexadecimal: <code>01 01 00 05 80</code> equivale a <code>load R1 #5</code>.</p>
+      </section>
+
+      <section data-seccion="cpu">
+        <h3>Pestaña CPU</h3>
+        <p>Muestra qué pasa dentro del procesador con cada instrucción. Primero carga un programa desde <b>Compilador</b>.</p>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Control</th><th>Para qué sirve</th></tr>
+          <tr><td><b>Siguiente micropaso</b></td><td>Avanza una microoperación.</td></tr>
+          <tr><td><b>Instrucción completa</b></td><td>Anima toda la instrucción.</td></tr>
+          <tr><td><b>Reproducir</b></td><td>Anima el programa hasta el final o hasta que pulses <b>Pausa</b>.</td></tr>
+          <tr><td><b>Velocidad</b></td><td>Cambia el ritmo de la animación.</td></tr>
+        </table></div>
+        <h4 id="ayuda-ciclo">El ciclo de instrucción</h4>
+        <ol>
+          <li><b>Captación:</b> se lee de memoria la instrucción que indica <code>PC</code>, y <code>PC</code> avanza.</li>
+          <li><b>Decodificación:</b> la unidad de control interpreta lo que hay en <code>IR</code>.</li>
+          <li><b>Ejecución:</b> se hace el trabajo: calcular, mover datos o saltar.</li>
+        </ol>
+        <h4 id="ayuda-microoperaciones">Cómo leer las microoperaciones</h4>
+        <p>El panel <b>Qué está pasando</b> lista los pasos de la instrucción. La flecha significa «recibe»: <code>MAR ← PC</code> quiere decir que <code>MAR</code> recibe el contenido de <code>PC</code>, y <code>M[MAR]</code> es la celda a la que apunta <code>MAR</code>.</p>
+        <h4 id="ayuda-buses">Los buses</h4>
+        <ul>
+          <li><span class="muestra muestra-datos"></span><b>Bus de datos:</b> transporta valores e instrucciones.</li>
+          <li><span class="muestra muestra-direcciones"></span><b>Bus de direcciones:</b> indica a la memoria qué celda se quiere.</li>
+          <li><span class="muestra muestra-control"></span><b>Líneas de control:</b> llevan órdenes y resultados de comparación.</li>
+        </ul>
+        <p>A y B son las entradas de la ALU. Este esquema es una simplificación para aprender: una CPU real es bastante más compleja.</p>
+      </section>
+
+      <section data-seccion="instrucciones">
+        <h3>Instrucciones del ensamblador</h3>
+        <div class="ayuda-tabla"><table>
+          <tr><th>Instrucción</th><th>Qué hace</th></tr>
+          <tr><td><code>load R1 #5</code></td><td>Carga el valor 5 en <code>R1</code>.</td></tr>
+          <tr><td><code>load R1 [30]</code></td><td>Carga en <code>R1</code> el contenido de la celda 30.</td></tr>
+          <tr><td><code>store R1 [30]</code></td><td>Guarda <code>R1</code> en la celda 30. También vale <code>AC</code>.</td></tr>
+          <tr><td><code>add R1 R2</code></td><td>Suma y deja el resultado en <code>AC</code>. Igual con <code>sub</code>, <code>mul</code> y <code>div</code>.</td></tr>
+          <tr><td><code>cmp R1 R2</code></td><td>Compara y deja -1, 0 o 1 en <code>SR</code>. El segundo operando puede ser <code>#5</code>.</td></tr>
+          <tr><td><code>cmplt R1 R2</code></td><td>Deja 1 en <code>AC</code> si <code>R1</code> &lt; <code>R2</code>, y 0 si no. También <code>cmpgt</code>, <code>cmple</code>, <code>cmpge</code>, <code>cmpeq</code> y <code>cmpne</code>.</td></tr>
+          <tr><td><code>jmp etiqueta</code></td><td>Salta siempre.</td></tr>
+          <tr><td><code>je</code>, <code>jne</code></td><td>Salta si <code>SR</code> es igual o distinto de 0.</td></tr>
+          <tr><td><code>jg</code>, <code>jl</code></td><td>Salta si <code>SR</code> es mayor o menor que 0.</td></tr>
+          <tr><td><code>jge</code>, <code>jle</code></td><td>Salta si <code>SR</code> es mayor o igual, o menor o igual, que 0.</td></tr>
+          <tr><td><code>print "Hola" (int) R1</code></td><td>Imprime texto y registros. Tipos: <code>(int)</code>, <code>(float)</code>, <code>(char)</code> y <code>(bool)</code>.</td></tr>
+          <tr><td><code>etiqueta:</code></td><td>Da nombre a una posición para saltar a ella.</td></tr>
+        </table></div>
+        <p>Una operación del lenguaje se convierte en varias instrucciones. Por ejemplo, <code>c := a + b</code> genera <code>add</code>, <code>store AC</code> y <code>load</code>, porque el resultado queda en <code>AC</code> y pasa por memoria hasta su registro.</p>
+      </section>
+    </div>
+  </dialog>
+
+  <input type="file" id="fichero-fuente" accept=".txt" hidden>
+  <input type="file" id="fichero-programa" accept=".asm" hidden>
+
+  <script src="js/compilador.js"></script>
+  <script src="js/ensamblador.js"></script>
+  <script src="js/maquina.js"></script>
+  <script src="js/ciclo.js"></script>
+  <script src="js/comandos.js"></script>
+  <script src="js/ejemplos.js"></script>
+  <script src="js/vistacpu.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

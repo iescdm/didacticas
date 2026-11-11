@@ -1,0 +1,6 @@
+#Pruebas con reales
+real v1 := 4.1
+real v2 := 9.2
+entero r
+r := v1 / v2
+imprimir "Pruebas " v1, v2,r

@@ -1,0 +1,8 @@
+entero i := 0
+
+mientras i < 5
+    imprimir "valor", i
+    i := i + 1
+fin
+
+

@@ -1,0 +1,6 @@
+entero i
+imprimir "Inicio"
+para i := 0 hasta 10 paso 2
+    imprimir "Iteracion" i
+finpara
+imprimir "Fin"

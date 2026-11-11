@@ -1,0 +1,7 @@
+entero i := 6
+imprimir "Inicio Programa"
+mientras i > 1
+    imprimir "Iteración Mientras", i
+    i := i - 1
+fin
+imprimir "Fin Programa"

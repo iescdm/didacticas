@@ -1,0 +1,2695 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Servicios en SO</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  /* Concepto: consola de operaciones con tres paneles (servicios, red).
+     Un selector Linux/Windows cambia nombres, comandos y configuración en toda la página. */
+  --bg: #EDF0F3;
+  --surface: #FFFFFF;
+  --surface-2: #F4F6F8;
+  --ink: #16212B;
+  --muted: #566675;
+  --line: #D8DFE6;
+  --line-strong: #B4C0CB;
+  --accent: #2455D6;
+  --on-accent: #FFFFFF;
+  --ok: #17855A;
+  --warn: #A8620A;
+  --err: #C2352F;
+  --idle: #6F7C89;
+  --font-display: 'Familjen Grotesk', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E151B; --surface: #151E26; --surface-2: #1B2630; --ink: #E4EBF1; --muted: #93A3B1;
+    --line: #26333E; --line-strong: #3A4957; --accent: #7A9CFF; --on-accent: #0E151B;
+    --ok: #3DC68A; --warn: #E3A442; --err: #F0706A; --idle: #8896A3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E151B; --surface: #151E26; --surface-2: #1B2630; --ink: #E4EBF1; --muted: #93A3B1;
+  --line: #26333E; --line-strong: #3A4957; --accent: #7A9CFF; --on-accent: #0E151B;
+  --ok: #3DC68A; --warn: #E3A442; --err: #F0706A; --idle: #8896A3;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.05; font-weight: 700; }
+h2 { font-size: 18px; font-weight: 700; }
+p { margin: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.eyebrow { font: 500 12px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lead { max-width: 72ch; color: var(--muted); margin-top: 12px; }
+.intro { display: flex; flex-direction: column; }
+.try { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px 28px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.try li { font-size: 14px; color: var(--muted); }
+.try strong { color: var(--ink); font-weight: 600; display: block; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; }
+.card-p { padding: 0 16px 16px; }
+.sub { color: var(--muted); font-size: 14px; padding: 0 16px 12px; max-width: 72ch; }
+.sub code, .note code { font: 12.5px var(--font-mono); color: var(--ink); }
+.topic > .sub, .sub.full { max-width: none; }
+
+/* Barra de pestañas y sistema operativo */
+.toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; border-bottom: 1px solid var(--line); margin-top: 6px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; max-width: 100%; padding-bottom: 8px; }
+.tab {
+  font: 600 14px var(--font-body); padding: 8px 16px; border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--surface); color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+.tab-sel { appearance: auto; padding: 7px 12px; max-width: 100%; }
+.tab-sel option { color: var(--ink); background: var(--surface); }
+.tab:hover { color: var(--ink); border-color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--on-accent, #fff); background: var(--accent); border-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.settings { position: relative; }
+.settings .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 14px; }
+.settings .caret { color: var(--muted); font-size: 11px; }
+.set-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: min(260px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,.18); padding: 8px 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.set-pop fieldset { border: 0; margin: 0; padding: 6px 8px 0; display: flex; flex-direction: column; }
+.set-pop legend { font: 500 13px var(--font-body); color: var(--muted); padding: 6px 0 4px; }
+.set-pop label { display: flex; align-items: center; gap: 12px; padding: 8px 4px; border-radius: 10px; cursor: pointer; font-size: 15px; }
+.set-pop label:hover { background: var(--surface-2); }
+.set-pop input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.set-pop input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tool-right { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 18px; padding-bottom: 8px; }
+.panel { display: flex; flex-direction: column; gap: 16px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; border: 0; margin: 0; padding: 0; }
+.field > span, .field > legend { font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.seg label { position: relative; }
+.seg label + label { border-left: 1px solid var(--line-strong); }
+.seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; padding: 7px 12px; font: 500 13px var(--font-mono); color: var(--muted); background: var(--surface); }
+.seg input:checked + span { background: var(--accent); color: var(--on-accent); }
+.seg input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: -4px; }
+select {
+  font: 500 13px var(--font-mono); padding: 7px 10px; border: 1px solid var(--line-strong);
+  border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%;
+}
+.btn {
+  font: 500 13px var(--font-body); padding: 6px 11px; border: 1px solid var(--line-strong);
+  border-radius: 7px; background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--surface-2); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+.btn.danger { color: var(--err); border-color: color-mix(in srgb, var(--err) 45%, var(--line-strong)); }
+.btn.big { padding: 8px 14px; font-size: 14px; }
+
+/* Control del sistema */
+.bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 22px; padding: 14px 16px; }
+.bar { align-items: flex-start; }
+.bar .stats { align-self: center; margin-left: auto; }
+.bar .seg span { padding: 0 14px; display: flex; align-items: center; height: 36px; font-size: 14px; }
+.bar-actions .btn.big { height: 36px; display: inline-flex; align-items: center; padding-block: 0; }
+.bar-actions { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.bar-actions .btn { border: 0; border-radius: 0; }
+.bar-actions .btn + .btn { border-left: 1px solid var(--line-strong); }
+.bar-actions .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; }
+.stats { margin-left: auto; font: 13px var(--font-mono); color: var(--muted); text-align: right; padding-bottom: 8px; }
+.stats .bad { color: var(--err); }
+
+.main, .second, .net-main, .net-grid, .side { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 980px) {
+  .main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
+  /* La lista ocupa todo el alto de la columna derecha (de Dependencias a Diario) y hace scroll por dentro */
+  .main > .card:first-child { display: flex; flex-direction: column; min-height: 460px; }
+  .main > .card:first-child .list { flex: 1; min-height: 0; position: relative; }
+  .main > .card:first-child ul.rows { position: absolute; inset: 0; }
+  .second { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .net-grid { align-items: stretch; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "scene ctl" "conns metrics"; }
+  .g-obs { grid-area: obs; } .g-ctl { grid-area: ctl; } .g-scene { grid-area: scene; } .g-conns { grid-area: conns; } .g-metrics { grid-area: metrics; }
+}
+
+/* Lista de servicios */
+.list { container-type: inline-size; }
+.listhead { display: none; }
+ul.rows { list-style: none; margin: 0; padding: 0 8px; border-top: 1px solid var(--line); position: relative; overflow-y: auto; overscroll-behavior: contain; border-bottom: 1px solid var(--line); }
+ul.rows:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row {
+  --c: var(--idle);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main state" "acts boot";
+  gap: 10px 12px; align-items: center; padding: 12px 14px; border-radius: 14px; cursor: pointer;
+}
+.row { position: relative; }
+.row:not(:last-child)::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 1px; background: var(--line); pointer-events: none; }
+.row[aria-current="true"]::after, .row.flash::after, .row:has(+ .row[aria-current="true"])::after, .row:has(+ .row.flash)::after { display: none; }
+.row[data-state="active"] { --c: var(--ok); }
+.row[data-state="starting"], .row[data-state="stopping"] { --c: var(--warn); }
+.row[data-state="failed"] { --c: var(--err); }
+.row[aria-current="true"] { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); box-shadow: inset 4px 0 0 var(--accent); }
+.row.flash { animation: rowflash 1.8s ease-out; }
+@keyframes rowflash {
+  0%, 35% { background: color-mix(in srgb, var(--accent) 32%, var(--surface)); outline: 3px solid var(--accent); outline-offset: -3px; }
+  100% { outline: 3px solid transparent; outline-offset: -3px; }
+}
+@media (prefers-reduced-motion: reduce) { .row.flash { animation: none; outline: 3px solid var(--accent); outline-offset: -3px; } }
+.r-main { grid-area: main; display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; margin-top: 6px; }
+.row[data-state="starting"] .dot, .row[data-state="stopping"] .dot, .chip[data-state="starting"] .dot { animation: pulse 0.9s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; transform: scale(0.8); } }
+.r-select { all: unset; display: flex; flex-direction: column; min-width: 0; cursor: pointer; }
+.r-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.r-name { font: 500 13.5px var(--font-mono); overflow-wrap: anywhere; }
+.r-desc { font-size: 13px; color: var(--muted); }
+.row[aria-current="true"] .r-name { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.pill {
+  grid-area: state; justify-self: end; font: 500 12px var(--font-mono); padding: 3px 9px; border-radius: 999px;
+  color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 32%, transparent); white-space: nowrap;
+}
+.pid { grid-area: pid; display: none; font: 13px var(--font-mono); color: var(--muted); }
+.acts { grid-area: acts; display: flex; flex-wrap: wrap; gap: 6px; }
+.boot { grid-area: boot; justify-self: end; position: relative; display: block; width: 34px; height: 20px; cursor: pointer; }
+.boot input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.sw { display: block; width: 34px; height: 20px; border-radius: 999px; background: var(--line-strong); position: relative; transition: background 0.15s; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); transition: transform 0.15s; }
+.boot input:checked + .sw { background: var(--accent); }
+.boot input:checked + .sw::after { transform: translateX(14px); }
+.boot input:focus-visible + .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@container (min-width: 820px) {
+  .listhead, .row { grid-template-columns: minmax(0, 1fr) 92px 60px auto 92px; }
+  .listhead {
+    display: grid; gap: 12px; padding: 6px 16px; border-top: 1px solid var(--line); background: var(--surface-2);
+    font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  }
+  .listhead span:nth-child(2), .listhead span:nth-child(5) { text-align: right; }
+  .row { grid-template-areas: "main state pid acts boot"; }
+  .pill { justify-self: stretch; text-align: center; }
+  .pid { display: block; }
+}
+
+/* Detalle */
+#detail { --c: var(--idle); }
+#detail[data-state="active"] { --c: var(--ok); }
+#detail[data-state="starting"], #detail[data-state="stopping"] { --c: var(--warn); }
+#detail[data-state="failed"] { --c: var(--err); }
+.d-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.d-top h2 { font: 500 16px var(--font-mono); letter-spacing: 0; overflow-wrap: anywhere; }
+.d-desc { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.flow { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 14px 0 0; padding: 0; }
+.flow li { font: 500 12px var(--font-mono); padding: 4px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
+.flow li.arrow { border: 0; padding: 0 1px; }
+.flow li.on { color: var(--c); border-color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+.flow li[data-s="failed"] { margin-left: 6px; }
+.flow-note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.d-about { margin-top: 10px; font-size: 14px; display: grid; gap: 10px; }
+.d-about p { color: var(--ink); }
+.d-about dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 0; font-size: 13px; }
+.d-about dt { color: var(--muted); font: 600 11px var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; padding-top: 2px; }
+.d-about dd { margin: 0; color: var(--ink); }
+.d-about code { font: 12.5px var(--font-mono); }
+.explain { margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; font-size: 14px; }
+.cfg-title { font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 14px; }
+pre.unit {
+  margin: 6px 0 0; padding: 12px 14px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--line);
+  font: 12.5px/1.65 var(--font-mono); overflow-x: auto; white-space: pre;
+}
+pre.unit .sec { color: var(--accent); font-weight: 500; }
+pre.unit .k { color: var(--ink); }
+pre.unit .v { color: var(--ok); }
+pre.unit .c { color: var(--muted); }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px 16px; margin: 14px 0 0; }
+.metrics.pad { margin: 0; padding: 0 16px 12px; }
+.metrics div { min-width: 0; }
+.metrics dt { font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.metrics dd { margin: 2px 0 0; font: 500 14px var(--font-mono); font-variant-numeric: tabular-nums; }
+.metrics dd.big { font: 700 26px/1.1 var(--font-display); }
+.spark { display: block; width: 100%; height: 30px; margin-top: 4px; }
+.spark path.area { fill: color-mix(in srgb, var(--accent) 16%, transparent); stroke: none; }
+.spark polyline { fill: none; stroke: var(--accent); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+
+/* Grafo de dependencias */
+.graph-scroll { overflow: hidden; padding: 0 16px 6px; }
+#graph { display: block; width: 100%; height: auto; }
+.node { --c: var(--idle); cursor: pointer; }
+.node[data-state="active"] { --c: var(--ok); }
+.node[data-state="starting"], .node[data-state="stopping"] { --c: var(--warn); }
+.node[data-state="failed"] { --c: var(--err); }
+.node rect { fill: color-mix(in srgb, var(--c) 12%, var(--surface)); stroke: var(--c); stroke-width: 1.5; }
+.node text { fill: var(--ink); font: 500 12.5px var(--font-mono); pointer-events: none; }
+.node[data-state="inactive"] rect { fill: color-mix(in srgb, var(--ink) 9%, var(--surface)); stroke: var(--muted); stroke-dasharray: 5 4; stroke-width: 1.6; }
+.node[data-state="inactive"] text { fill: var(--muted); text-decoration: line-through; }
+.node[data-state="failed"] rect { fill: color-mix(in srgb, var(--c) 22%, var(--surface)); stroke-width: 2.5; }
+.node[data-state="active"] rect { fill: color-mix(in srgb, var(--c) 18%, var(--surface)); }
+.node.sel rect { stroke-width: 3.5; }
+.node:focus-visible { outline: none; }
+.node:focus-visible rect { stroke: var(--accent); stroke-width: 3.5; }
+.edge { color: var(--line-strong); }
+.edge path { fill: none; stroke: currentColor; stroke-width: 1.6; }
+.edge polygon { fill: currentColor; }
+.edge.live { color: var(--ok); }
+.edge.pending { color: var(--warn); }
+.edge.pending path, .edge.broken path { stroke-dasharray: 5 4; }
+.edge.broken { color: var(--err); }
+.edge.off { color: var(--muted); opacity: .55; }
+.edge.off path { stroke-dasharray: 2 4; }
+.graph-note { padding: 4px 16px 16px; font-size: 13px; color: var(--muted); }
+
+/* Diario */
+.log { height: 340px; overflow-y: auto; padding: 4px 16px 12px; font: 12.5px/1.6 var(--font-mono); }
+.ln { display: flex; gap: 10px; align-items: baseline; }
+.ln time { color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+.ln b { font-weight: 500; flex: none; color: var(--accent); min-width: 6.5ch; }
+.ln span, .ln code { min-width: 0; overflow-wrap: anywhere; }
+.ln.ok span { color: var(--ok); }
+.ln.warn span { color: var(--warn); }
+.ln.err span { color: var(--err); }
+.ln.cmd { margin-top: 6px; }
+.ln.cmd .ps { color: var(--accent); flex: none; }
+.ln.cmd code { font: inherit; font-weight: 500; }
+
+/* Red: arquitecturas */
+.acc > summary { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; list-style: none; flex-wrap: wrap; }
+.acc > summary::-webkit-details-marker { display: none; }
+.acc > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+.acc[open] > summary::before { transform: rotate(90deg); }
+.arch-svc { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px 12px; border-top: 1px solid var(--line); }
+.arch-svc select { max-width: 100%; }
+.arch-hint { font-size: 13px; color: var(--muted); flex: 1; min-width: 200px; }
+.acc-k { font: 600 11px var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.acc-v { font-weight: 600; flex: 1; min-width: 0; }
+.acc-v small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 8px; }
+.acc-hint { font-size: 13px; color: var(--accent); }
+.acc[open] .acc-hint { visibility: hidden; }
+.acc > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 10px; }
+.acc .topos { padding: 0 16px 16px; }
+.topos { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 620px) { .topos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 980px) { .topos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.topo {
+  text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+.topo:hover { border-color: var(--line-strong); }
+.topo[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.topo h3 { font: 700 15px var(--font-display); }
+.topo p { font-size: 13px; color: var(--muted); }
+.topo-h { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.topo-h .glyph { flex: none; width: 64px; height: 28px; }
+.topo dl { margin: auto 0 0; padding-top: 8px; border-top: 1px dashed var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
+.topo dl > div { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.topo dt { color: var(--muted); font-family: var(--font-mono); }
+.topo dd { margin: 0; }
+.glyph { width: 80px; height: 32px; color: var(--accent); }
+.glyph circle, .glyph rect { fill: var(--surface); stroke: currentColor; stroke-width: 1.6; }
+.glyph line, .glyph polyline { stroke: currentColor; stroke-width: 1.4; fill: none; }
+
+.scene-scroll { overflow: hidden; padding: 0 16px; }
+#netsvg { display: block; width: 100%; height: auto; }
+.lnk { stroke: var(--line-strong); stroke-width: 1; opacity: 0.7; }
+.nd .box { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1.5; }
+.nd.cl .box { fill: var(--surface); }
+.nd text { fill: var(--ink); font: 500 12px var(--font-mono); text-anchor: middle; pointer-events: none; }
+.nd .sub-t, .nd .qt { fill: var(--muted); font-size: 11px; font-weight: 400; }
+.nd .trk { fill: var(--line); }
+.nd .fill { fill: var(--accent); }
+.nd[data-state="up"] .box { stroke: var(--ok); }
+.nd[data-state="starting"] .box { stroke: var(--warn); stroke-dasharray: 5 3; }
+.nd[data-state="down"] .box { stroke: var(--err); stroke-dasharray: 5 3; fill: color-mix(in srgb, var(--err) 10%, var(--surface)); }
+.nd[data-state="down"] .qt { fill: var(--err); }
+.nd.tog { cursor: pointer; }
+.nd.tog:focus-visible { outline: none; }
+.nd.tog:focus-visible .box { stroke: var(--accent); stroke-width: 3; }
+.pk { stroke: var(--surface); stroke-width: 1.5; }
+.pk.out { fill: var(--accent); }
+.pk.back { fill: var(--ok); }
+.pk.fail { fill: var(--err); }
+.pk.wait { fill: var(--warn); }
+.scene-hint { padding: 6px 16px 0; font-size: 13px; color: var(--muted); min-height: 1.5em; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 6px 16px 16px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+.ctl { display: grid; gap: 14px; padding: 0 16px 16px; }
+.rg { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; }
+.rg label { font-size: 13.5px; }
+.rg output { font: 500 13px var(--font-mono); font-variant-numeric: tabular-nums; }
+.rg input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 2px 0 0; }
+.chips { display: grid; gap: 8px; }
+.chip { --c: var(--idle); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); }
+.chip[data-state="active"] { --c: var(--ok); }
+.chip[data-state="starting"], .chip[data-state="stopping"] { --c: var(--warn); }
+.chip[data-state="failed"] { --c: var(--err); }
+.chip .t { flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; }
+.chip code { font: 500 13px var(--font-mono); overflow-wrap: anywhere; }
+.chip small { color: var(--muted); font-size: 12px; }
+.chip .pill { grid-area: auto; }
+.ctl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.note { font-size: 13px; color: var(--muted); }
+
+.conn-wrap { max-height: 330px; overflow: auto; padding: 0 16px 16px; }
+table.conns { min-width: 420px; font: 12.5px var(--font-mono); font-variant-numeric: tabular-nums; }
+table.conns th, table.conns td { padding: 6px 10px; }
+.st-estab { color: var(--ok); }
+.st-syn { color: var(--warn); }
+.st-tw { color: var(--muted); }
+.st-listen { color: var(--accent); }
+body[data-os="linux"] .col-pid { display: none; }
+
+.seq svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
+.seq-pad { padding: 0 16px 8px; }
+.life { stroke: var(--line-strong); stroke-dasharray: 4 4; }
+.seq .hd rect { fill: var(--surface-2); stroke: var(--line-strong); }
+.seq text { fill: var(--ink); font: 12px var(--font-mono); text-anchor: middle; }
+.stp { color: var(--ink); }
+.stp line { stroke: currentColor; stroke-width: 1.6; }
+.stp polygon { fill: currentColor; }
+.stp text { fill: currentColor; }
+.stp.on { color: var(--accent); }
+.stp.on line { stroke-width: 2.6; }
+.stp.on text { font-weight: 600; }
+.stp.pend { color: var(--muted); opacity: 0.55; }
+.seq-note { min-height: 3em; font-size: 14px; }
+.seq-act { display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap; }
+.card-h { flex-wrap: wrap; }
+.card-h .seq-act { padding: 0; justify-content: flex-end; margin-left: auto; }
+.seq-note { background: var(--surface-2); border-radius: 8px; margin: 0 16px 10px; padding: 10px 12px; }
+.observe { margin: 0; padding: 0 16px 16px 34px; display: grid; gap: 8px; font-size: 14px; }
+.observe li { padding-left: 2px; }
+
+/* Ventana de detalle */
+#win { width: min(760px, calc(100vw - 32px)); max-width: none; max-height: 88vh; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(8, 16, 24, 0.35); }
+#win[open] { display: flex; flex-direction: column; }
+#win { position: fixed; inset: auto; margin: 0; z-index: 15; }
+#win.dragging .win-h { cursor: grabbing; }
+#win::backdrop { background: rgba(8, 16, 24, 0.5); }
+.win-h { cursor: grab; touch-action: none; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex: none; }
+.win-h h2 { font-size: 15px; }
+#win-body { overflow: auto; padding-bottom: 4px; }
+#win-body #detail { border: 0; border-radius: 0; background: transparent; }
+
+/* Ayuda */
+.toolbar { position: relative; }
+.help-btn { padding: 7px 12px; font-size: 13px; display: inline-flex; align-items: center; }
+.help-btn span { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid currentColor; font: 600 11px var(--font-mono); margin-right: 7px; }
+.help-btn[aria-expanded="true"] { background: var(--surface-2); border-color: var(--accent); }
+.help {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: min(520px, 100%); min-width: min(320px, 100%); resize: horizontal;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; padding: 14px 16px 16px;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--ink) 20%, transparent); max-height: min(70vh, 560px); overflow-y: auto;
+}
+.help:focus-visible { outline: 2px solid var(--accent); }
+.help-h { cursor: grab; touch-action: none; user-select: none; position: sticky; top: -14px; background: var(--surface); margin: -14px -16px 8px; padding: 14px 16px 8px; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.help-h h2 { font-size: 16px; }
+.help.dragging .help-h { cursor: grabbing; }
+.help.moved { position: fixed; right: auto; }
+.help-grip { color: var(--muted); font: 12px var(--font-mono); letter-spacing: 1px; }
+.help-h3 { font: 600 14px var(--font-display); margin: 12px 0 4px; }
+.help-ref { grid-template-columns: minmax(0, 1fr); margin-top: 14px; border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 4px; }
+.help-ref > .ref-t { font: 600 11px var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.help-ref details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.help-ref summary { cursor: pointer; padding: 8px 12px; font-weight: 600; font-size: 14px; }
+.help-ref details[open] summary { border-bottom: 1px solid var(--line); }
+.help-ref .sub { padding: 8px 12px 6px; font-size: 13px; }
+.help-ref .table-scroll { padding: 0 8px 10px; }
+.help-ref table { font-size: 12.5px; }
+.help p { font-size: 14px; color: var(--muted); }
+.help-list { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 10px; font-size: 14px; color: var(--muted); }
+.help-list strong { color: var(--ink); font-weight: 600; }
+
+/* DHCP y DNS */
+.seq.wide svg { max-width: none; margin: 0; }
+.seq .hd.up rect { stroke: var(--ok); }
+.seq .hd.down rect { stroke: var(--err); stroke-dasharray: 4 3; fill: color-mix(in srgb, var(--err) 9%, var(--surface)); }
+.seq .stp text { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.seq .stp text.pr { font-size: 10.5px; opacity: 0.8; }
+.stp.bad { color: var(--err); opacity: 1; }
+.stp.bad line { stroke-dasharray: 5 4; }
+.stp.bad.on line { stroke-width: 2.6; }
+.dd { display: grid; gap: 16px; padding: 0 16px 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 980px) { .dd { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
+.dd-act { justify-content: flex-end; }
+.dd-side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.dd-note { padding: 10px 12px; background: var(--surface-2); border-radius: 8px; font-size: 14px; min-height: 5.2em; }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; cursor: pointer; }
+.chk input { margin-top: 3px; accent-color: var(--accent); }
+.ficha { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.ficha dt { font: 500 11px var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); align-self: center; }
+.ficha dd { margin: 0; font: 12.5px var(--font-mono); overflow-wrap: anywhere; }
+.ficha dd.set { color: var(--ok); font-weight: 500; }
+.ficha dd.bad { color: var(--err); font-weight: 500; }
+
+/* Puertos y sockets */
+.pt { padding: 0 16px 16px; display: grid; gap: 10px; }
+.pt-row { display: grid; grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); gap: 8px; align-items: stretch; }
+.pt-box { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+.pt-box b { font: 700 13.5px var(--font-display); }
+.pt-box span { font: 12.5px var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.pt-box .eph { color: var(--warn); font-weight: 500; }
+.pt-box .fixed { color: var(--ok); font-weight: 500; }
+.pt-box.ls { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.pt-box.none { background: none; border-style: dashed; }
+.pt-arrow { display: flex; align-items: center; justify-content: center; color: var(--muted); font: 500 16px var(--font-mono); }
+.pt-head { display: grid; grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); gap: 8px; font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.pt-row.new .pt-box { animation: ptin 0.9s ease-out; }
+@keyframes ptin { from { background: color-mix(in srgb, var(--accent) 28%, var(--surface-2)); } }
+.pt-note { padding: 10px 12px; background: var(--surface-2); border-radius: 8px; font-size: 14px; min-height: 3.2em; }
+.pt-act { display: flex; flex-wrap: wrap; gap: 8px; }
+.pt-head-l { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pt-head .btn { text-transform: none; letter-spacing: 0; font: 500 13px var(--font-body); padding: 5px 10px; }
+.pt-head { align-items: center; }
+@media (prefers-reduced-motion: reduce) { .pt-row.new .pt-box { animation: none; } }
+
+/* Tablas */
+.table-scroll { overflow-x: auto; padding: 0 16px 16px; }
+table { border-collapse: collapse; width: 100%; min-width: 600px; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+thead th { font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-top: 0; }
+tbody th { font-weight: 600; color: var(--ink); width: 22%; }
+td code { font: 13px var(--font-mono); }
+body[data-os="linux"] td.l, body[data-os="windows"] td.w,
+body[data-os="linux"] th.l, body[data-os="windows"] th.w { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+body[data-os="linux"] th.l, body[data-os="windows"] th.w { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .row[data-state="starting"] .dot, .row[data-state="stopping"] .dot, .chip[data-state="starting"] .dot { animation: none; }
+  .sw, .sw::after { transition: none; }
+}
+</style>
+
+<main class="wrap">
+  <header class="intro">
+    <p class="eyebrow">Sistema operativo · servicios, clientes y servidores</p>
+    <h1>Servicios en SO</h1>
+  </header>
+
+  <div class="toolbar">
+    <div class="tabs" role="tablist" aria-label="Paneles">
+      <button class="tab" role="tab" id="tab-servicios" aria-controls="panel-servicios" aria-selected="true" data-tab="servicios">Servicios</button>
+      <button class="tab" role="tab" id="tab-red" aria-controls="panel-red" aria-selected="false" tabindex="-1" data-tab="red">Clientes y servidores</button>
+      <select class="tab tab-sel" id="tab-dhcp" data-tab="dhcp" aria-label="Emuladores: elige un tema" aria-selected="false">
+        <option value="" hidden>Emuladores</option>
+        <option value="dd">Conseguir IP y nombre: DHCP y DNS</option>
+        <option value="tcp">Abrir la conexión: TCP paso a paso</option>
+        <option value="pt">Puertos: ¿cambian al conectar?</option>
+        <option value="mc">Instalar por multicast</option>
+      </select>
+    </div>
+    <div class="tool-right">
+      <div class="settings">
+        <button class="btn" type="button" id="btn-set" aria-haspopup="dialog" aria-expanded="false" aria-controls="set-pop"><span id="set-sum">Linux · 1×</span><span aria-hidden="true" class="caret">▾</span></button>
+        <div class="set-pop" id="set-pop" role="dialog" aria-label="Ajustes de la simulación" hidden>
+          <fieldset><legend>Sistema operativo</legend>
+            <label><input type="radio" name="set-os" value="linux" checked><span>Linux</span></label>
+            <label><input type="radio" name="set-os" value="windows"><span>Windows</span></label>
+          </fieldset>
+          <fieldset><legend>Velocidad</legend>
+            <label><input type="radio" name="set-speed" value="0.5"><span>0,5×</span></label>
+            <label><input type="radio" name="set-speed" value="1" checked><span>1×</span></label>
+            <label><input type="radio" name="set-speed" value="2"><span>2×</span></label>
+            <label><input type="radio" name="set-speed" value="4"><span>4×</span></label>
+          </fieldset>
+        </div>
+        <div hidden>
+          <select id="os-sel" aria-label="Sistema operativo">
+          <option value="linux" selected>Linux</option>
+          <option value="windows">Windows</option>
+        </select>
+          <select id="speed" aria-label="Velocidad de la simulación">
+          <option value="0.5">0,5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+        </div>
+      </div>
+      <button class="btn help-btn" type="button" id="btn-help" aria-expanded="false" aria-controls="help"><span aria-hidden="true">?</span>Ayuda</button>
+    </div>
+    <div class="help" id="help" role="dialog" aria-labelledby="help-title" tabindex="-1" hidden>
+      <div class="help-h" id="help-drag" title="Arrastra para mover"><h2 id="help-title"></h2><span class="help-grip" aria-hidden="true">⋮⋮ mover</span><button class="btn" type="button" id="help-close">Cerrar</button></div>
+      <div id="help-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== Panel 1: Servicios ===== -->
+  <section class="panel" id="panel-servicios" role="tabpanel" aria-labelledby="tab-servicios">
+
+    <section class="card bar" aria-label="Control del sistema">
+      <fieldset class="field">
+        <legend id="lg-target">Objetivo de arranque</legend>
+        <div class="seg" id="target-seg"></div>
+      </fieldset>
+      <fieldset class="field">
+        <legend id="lg-sys">Sistema</legend>
+        <div class="bar-actions">
+          <button class="btn primary big" type="button" id="btn-boot">Arrancar</button>
+          <button class="btn big" type="button" id="btn-reboot">Reiniciar</button>
+          <button class="btn big" type="button" id="btn-shutdown">Apagar</button>
+        </div>
+      </fieldset>
+      <p class="stats" id="stats" aria-live="polite"></p>
+    </section>
+
+    <div class="main">
+      <section class="card" aria-labelledby="h-list">
+        <div class="card-h"><h2 id="h-list">Servicios</h2></div>
+        <div class="list">
+          <div class="listhead" aria-hidden="true"><span id="lh-unit">Unidad</span><span>Estado</span><span>PID</span><span>Acciones</span><span>Al arrancar</span></div>
+          <ul class="rows" id="list" tabindex="0" aria-label="Lista de servicios"></ul>
+        </div>
+      </section>
+
+      <div class="side">
+      <section class="card" aria-labelledby="h-graph">
+        <div class="card-h"><h2 id="h-graph">Dependencias</h2></div>
+        <div class="graph-scroll"><svg id="graph" role="group" aria-label="Grafo de dependencias entre servicios"></svg></div>
+        <p class="graph-note">Las flechas siguen el orden de arranque: primero lo de arriba. Al detener un servicio se recorre el camino contrario. Verde: ambos activos. Discontinuo ámbar o rojo: esperando o roto. Gris punteado y tachado: detenido. Las dependencias están simplificadas para la demostración.</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-log">
+        <div class="card-h"><h2 id="h-log">Diario del sistema</h2><button class="btn" type="button" id="btn-clear">Limpiar</button></div>
+        <div class="log" id="log" role="log" aria-label="Diario del sistema"></div>
+      </section>
+      </div>
+    </div>
+    <div id="detail-stash" hidden>
+      <section class="card" id="detail" aria-labelledby="d-unit">
+        <div class="card-h" style="padding-bottom:0">
+          <div style="min-width:0">
+            <div class="d-top"><h2 id="d-unit"></h2><span class="pill" id="d-pill"></span></div>
+            <p class="d-desc" id="d-desc"></p>
+            <div class="d-about" id="d-about"></div>
+          </div>
+        </div>
+        <div class="card-p">
+          <ol class="flow" id="d-flow" aria-label="Estados del servicio">
+            <li data-s="inactive">inactivo</li><li class="arrow" aria-hidden="true">→</li>
+            <li data-s="starting">iniciando</li><li class="arrow" aria-hidden="true">→</li>
+            <li data-s="active">activo</li><li class="arrow" aria-hidden="true">→</li>
+            <li data-s="stopping">deteniendo</li>
+            <li data-s="failed">fallido</li>
+          </ol>
+          <p class="flow-note">Fallido: el proceso murió o no pudo arrancar.</p>
+          <p class="explain" id="d-explain" aria-live="polite"></p>
+          <p class="cfg-title" id="d-cfgtitle"></p>
+          <pre class="unit" id="d-unitfile" tabindex="0" aria-label="Configuración del servicio"></pre>
+          <dl class="metrics">
+            <div><dt>PID</dt><dd id="m-pid">–</dd></div>
+            <div><dt>Activo desde</dt><dd id="m-since">–</dd></div>
+            <div><dt>Reinicios</dt><dd id="m-restarts">0</dd></div>
+            <div><dt>Memoria</dt><dd id="m-mem">–</dd></div>
+            <div>
+              <dt>CPU</dt><dd id="m-cpu">–</dd>
+              <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path class="area" id="spark-area" d=""/><polyline id="spark-line" points=""/></svg>
+            </div>
+          </dl>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== Panel 2: Clientes y servidores ===== -->
+  <section class="panel" id="panel-red" role="tabpanel" aria-labelledby="tab-red" hidden>
+    <div class="card arch">
+    <details class="acc" id="topo-acc">
+      <summary><span class="acc-k">Arquitectura</span><span class="acc-v" id="topo-cur"></span><span class="acc-hint" aria-hidden="true">Cambiar</span></summary>
+      <div class="topos" id="topos" role="radiogroup" aria-label="Tipo de arquitectura"></div>
+    </details>
+    <div class="arch-svc">
+      <label for="sel-role" class="acc-k">Servicio</label>
+      <select id="sel-role" aria-label="Servicio que usan los clientes en esta arquitectura"></select>
+      <span class="arch-hint" id="role-hint"></span>
+    </div>
+    </div>
+
+    <div class="net-grid">
+      <section class="card g-scene" aria-labelledby="h-scene">
+        <div class="card-h"><h2 id="h-scene">Escena</h2></div>
+        <div class="scene-scroll"><svg id="netsvg" viewBox="0 0 700 360" role="img" aria-label="Clientes enviando peticiones a servidores"></svg></div>
+        <p class="scene-hint" id="scene-hint"></p>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Petición</span>
+          <span><i style="background:var(--ok)"></i>Respuesta</span>
+          <span><i style="background:var(--err)"></i>Error</span>
+          <span><i style="background:var(--warn)"></i>Sin respuesta</span>
+        </div>
+      </section>
+      <section class="card g-ctl" aria-labelledby="h-ctl">
+        <div class="card-h"><h2 id="h-ctl">Controles</h2>
+        <div class="seq-act">
+          <button class="btn primary" type="button" id="btn-burst">Ráfaga</button>
+          <button class="btn" type="button" id="btn-pause">Pausar</button>
+          <button class="btn" type="button" id="btn-reset">Reiniciar métricas</button>
+        </div>
+      </div>
+        <div class="ctl">
+          <div>
+            <div class="chips" id="chips"></div>
+            <p class="note" id="chips-note" style="margin-top:8px"></p>
+          </div>
+          <div class="rg"><label for="rg-clients" id="l-clients">Clientes</label><output id="o-clients" for="rg-clients">4</output><input type="range" id="rg-clients" min="1" max="12" step="1" value="4"></div>
+          <div class="field" id="mc-mode-field" hidden>
+            <span>Modo de envío de la imagen</span>
+            <select id="sel-mcmode" aria-label="Modo de envío de la imagen">
+              <option value="multicast">Multicast: una emisión para todos</option>
+              <option value="unicast">Unicast: una copia por equipo</option>
+            </select>
+          </div>
+          <div class="rg"><label for="rg-rate">Peticiones por cliente y segundo</label><output id="o-rate" for="rg-rate">0,8</output><input type="range" id="rg-rate" min="0.2" max="3" step="0.1" value="0.8"></div>
+          <div class="rg"><label for="rg-workers">Hilos de atención del servidor</label><output id="o-workers" for="rg-workers">2</output><input type="range" id="rg-workers" min="1" max="8" step="1" value="2"></div>
+          <div class="rg"><label for="rg-ms">Tiempo de proceso por petición</label><output id="o-ms" for="rg-ms">400 ms</output><input type="range" id="rg-ms" min="100" max="900" step="50" value="400"></div>
+        </div>
+      </section>
+      <section class="card g-conns" aria-labelledby="h-conns">
+        <div class="card-h"><h2 id="h-conns">Conexiones</h2><code id="net-tool" style="font:13px var(--font-mono);color:var(--muted)"></code></div>
+        <div class="conn-wrap" tabindex="0" aria-label="Tabla de conexiones">
+          <table class="conns">
+            <thead><tr><th scope="col">Estado</th><th scope="col">Cliente</th><th scope="col">Servidor</th><th scope="col" class="col-pid">PID</th></tr></thead>
+            <tbody id="conns"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="card g-metrics" aria-labelledby="h-metrics">
+        <div class="card-h"><h2 id="h-metrics">Métricas</h2></div>
+        <dl class="metrics pad">
+          <div><dt>Peticiones/s</dt><dd class="big" id="n-rps">0</dd><svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path class="area" id="sp1-a" d=""/><polyline id="sp1-l" points=""/></svg></div>
+          <div><dt>Latencia media</dt><dd class="big" id="n-lat">–</dd><svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path class="area" id="sp2-a" d=""/><polyline id="sp2-l" points=""/></svg></div>
+          <div><dt>Conexiones</dt><dd id="n-conn">0</dd></div>
+          <div><dt>En cola</dt><dd id="n-queue">0</dd></div>
+          <div><dt>Uso de hilos</dt><dd id="n-util">0 %</dd></div>
+          <div><dt>Correctas</dt><dd id="n-ok">0</dd></div>
+          <div><dt>Rechazadas</dt><dd id="n-ref">0</dd></div>
+          <div><dt>Descartadas</dt><dd id="n-rej">0</dd></div>
+          <div><dt>Sin respuesta</dt><dd id="n-to">0</dd></div>
+        </dl>
+        <p class="sub" id="met-sub">Rechazada: nadie escucha en ese puerto. Descartada: el servidor está lleno y responde 503. Sin respuesta: el servicio está arrancando y no contesta.</p>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== Panel 3: Emuladores ===== -->
+  <section class="panel" id="panel-dhcp" role="tabpanel" aria-labelledby="tab-dhcp" hidden>
+    <section class="card seq wide topic" data-topic="dd" aria-labelledby="h-dd">
+      <div class="card-h"><h2 id="h-dd">Antes de conectar: DHCP y DNS</h2>
+        <div class="seq-act">
+          <button class="btn primary" type="button" id="dd-play">Reproducir</button>
+          <button class="btn" type="button" id="dd-next">Paso siguiente</button>
+        </div>
+      </div>
+      <p class="sub">Antes de pedir una página, un cliente necesita dos cosas: una dirección IP, que le da el servidor DHCP, y saber qué IP corresponde al nombre que escribió, que le dice el servidor DNS. Son servicios del sistema como los demás. Detén uno y vuelve a reproducir para ver dónde se rompe.</p>
+      <div class="dd">
+        <div><svg id="ddsvg" role="img" aria-label="Diagrama de secuencia: DHCP, DNS y conexión al servidor web"></svg></div>
+        <div class="dd-side">
+          <div class="chips" id="dd-chips"></div>
+          <label class="chk"><input type="checkbox" id="dd-hasip"><span>El cliente ya tiene una IP con concesión vigente</span></label>
+          <label class="chk"><input type="checkbox" id="dd-byip"><span>El cliente escribe la IP del servidor en vez del nombre</span></label>
+          <dl class="ficha" id="dd-ficha"></dl>
+          <p class="dd-note" id="dd-note" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+    <section class="card seq topic" data-topic="tcp" aria-labelledby="h-seq">
+      <div class="card-h"><h2 id="h-seq">Una conexión, paso a paso</h2>
+        <div class="seq-act">
+          <button class="btn primary" type="button" id="seq-play">Reproducir</button>
+          <button class="btn" type="button" id="seq-next">Paso siguiente</button>
+        </div>
+      </div>
+      <p class="sub">Así se establece una conexión TCP con el servicio que elegiste en «Clientes y servidores». El cliente y el servidor se saludan en tres pasos (SYN, SYN-ACK, ACK) antes de enviar datos.</p>
+      <p class="seq-note" id="seq-note" aria-live="polite"></p>
+      <div class="seq-pad"><svg id="seqsvg" role="img" aria-label="Diagrama de secuencia de una conexión TCP"></svg></div>
+    </section>
+    <section class="card topic" data-topic="pt" aria-labelledby="h-pt">
+      <div class="card-h"><h2 id="h-pt">¿Cambia el puerto cuando se establece la conexión?</h2>
+        <div class="seq-act">
+          <button class="btn primary" type="button" id="pt-add">Conectar un cliente</button>
+          <button class="btn" type="button" id="pt-del">Cerrar la última</button>
+        </div>
+      </div>
+      <p class="sub">No. El servidor escucha en un puerto y todas las conexiones que acepta siguen usando ese mismo puerto. Lo que cambia es el puerto del cliente: cada conexión usa uno temporal distinto, y por eso el servidor sabe distinguirlas.</p>
+      <div class="pt">
+        <div class="pt-head">
+          <div class="pt-head-l"><span>Clientes</span>
+          </div>
+          <span aria-hidden="true"></span><span id="pt-srvhead">Servidor</span>
+        </div>
+        <div id="pt-listen"></div>
+        <div id="pt-rows" style="display:grid;gap:10px"></div>
+        <p class="pt-note" id="pt-note" aria-live="polite"></p>
+        <div class="table-scroll" style="padding:0">
+          <table style="min-width:520px">
+            <thead><tr><th scope="col">Conexión</th><th scope="col">IP del cliente</th><th scope="col">Puerto del cliente (cambia)</th><th scope="col">IP del servidor</th><th scope="col">Puerto del servidor (igual)</th></tr></thead>
+            <tbody id="pt-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ===== Panel: Instalación por multicast ===== -->
+  <section class="panel" id="panel-multicast" role="tabpanel" aria-labelledby="tab-dhcp" hidden>
+    <section class="card seq wide" aria-labelledby="h-mc">
+      <div class="card-h"><h2 id="h-mc">Instalar un sistema operativo por multicast</h2>
+        <div class="seq-act">
+          <button class="btn primary" type="button" id="mc-play">Reproducir</button>
+          <button class="btn" type="button" id="mc-next">Paso siguiente</button>
+        </div>
+      </div>
+      <p class="sub full">Para instalar el mismo sistema en muchos equipos a la vez, cada uno arranca por la red (PXE): consigue una IP por DHCP, descarga un cargador pequeño por TFTP y recibe la imagen del sistema por multicast. El servidor emite la imagen una sola vez y todos los equipos que se han unido al grupo la reciben a la vez, en lugar de enviársela a cada uno por separado. Apaga un servidor y vuelve a reproducir para ver dónde se rompe.</p>
+      <div class="dd">
+        <div><svg id="mcsvg" role="img" aria-label="Diagrama de secuencia: arranque PXE, DHCP, TFTP e imagen por multicast"></svg></div>
+        <div class="dd-side">
+          <div class="chips" id="mc-chips"></div>
+          <div class="rg"><label for="mc-n">Equipos que se instalan a la vez</label><output id="mc-n-o" for="mc-n">12</output><input type="range" id="mc-n" min="1" max="50" step="1" value="12"></div>
+          <div class="field">
+            <span>Tamaño de la imagen</span>
+            <select id="mc-gb" aria-label="Tamaño de la imagen del sistema">
+              <option value="2">2 GB</option>
+              <option value="4" selected>4 GB</option>
+              <option value="8">8 GB</option>
+              <option value="16">16 GB</option>
+            </select>
+          </div>
+          <dl class="ficha" id="mc-ficha"></dl>
+          <p class="dd-note" id="mc-note" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ===== Tablas de referencia (se muestran en la ayuda) ===== -->
+  <div id="ref-src" hidden>
+    <section class="card" aria-labelledby="h-eq">
+      <div class="card-h"><h2 id="h-eq">Conceptos</h2></div>
+      <p class="sub">Los nombres cambian, pero todos los sistemas tienen un gestor que lanza, vigila y detiene los servicios. La columna de tu sistema actual aparece resaltada.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Concepto</th><th scope="col" class="l">Linux</th><th scope="col" class="w">Windows</th><th scope="col">macOS</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Gestor</th><td class="l">systemd</td><td class="w">Service Control Manager</td><td>launchd</td></tr>
+            <tr><th scope="row">Definición del servicio</th><td class="l">Archivo <code>.service</code></td><td class="w">Entrada en el Registro</td><td>Archivo <code>.plist</code></td></tr>
+            <tr><th scope="row">Dependencias</th><td class="l"><code>Requires=</code> y <code>After=</code></td><td class="w"><code>DependOnService</code></td><td>Sin dependencias explícitas: se lanzan bajo demanda</td></tr>
+            <tr><th scope="row">Reinicio si falla</th><td class="l"><code>Restart=</code></td><td class="w">Acciones de recuperación</td><td><code>KeepAlive</code></td></tr>
+            <tr><th scope="row">Arranque automático</th><td class="l"><code>enable</code> y <code>WantedBy=</code></td><td class="w">Tipo de inicio: Automático</td><td><code>RunAtLoad</code></td></tr>
+            <tr><th scope="row">Cuenta con la que corre</th><td class="l"><code>User=</code> en la unidad</td><td class="w">LocalSystem, LocalService, NetworkService o cuenta virtual</td><td><code>UserName</code> en el plist</td></tr>
+            <tr><th scope="row">Registro de eventos</th><td class="l"><code>journalctl</code></td><td class="w">Visor de eventos</td><td><code>log show</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-cmd">
+      <div class="card-h"><h2 id="h-cmd">Comandos equivalentes</h2></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Tarea</th><th scope="col" class="l">Linux</th><th scope="col" class="w">Windows</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Listar servicios</th><td class="l"><code>systemctl list-units --type=service</code></td><td class="w"><code>Get-Service</code> o <code>sc query</code></td></tr>
+            <tr><th scope="row">Ver el estado de uno</th><td class="l"><code>systemctl status nginx</code></td><td class="w"><code>Get-Service W3SVC</code></td></tr>
+            <tr><th scope="row">Iniciar</th><td class="l"><code>sudo systemctl start nginx</code></td><td class="w"><code>Start-Service W3SVC</code> o <code>sc start W3SVC</code></td></tr>
+            <tr><th scope="row">Detener</th><td class="l"><code>sudo systemctl stop nginx</code></td><td class="w"><code>Stop-Service W3SVC</code> o <code>sc stop W3SVC</code></td></tr>
+            <tr><th scope="row">Reiniciar</th><td class="l"><code>sudo systemctl restart nginx</code></td><td class="w"><code>Restart-Service W3SVC</code></td></tr>
+            <tr><th scope="row">Arranque automático</th><td class="l"><code>sudo systemctl enable nginx</code></td><td class="w"><code>Set-Service W3SVC -StartupType Automatic</code></td></tr>
+            <tr><th scope="row">Ver conexiones</th><td class="l"><code>ss -tan</code></td><td class="w"><code>netstat -ano</code></td></tr>
+            <tr><th scope="row">Puertos a la escucha</th><td class="l"><code>ss -tlnp</code></td><td class="w"><code>Get-NetTCPConnection -State Listen</code></td></tr>
+            <tr><th scope="row">Terminar un proceso</th><td class="l"><code>kill -9 PID</code></td><td class="w"><code>taskkill /PID n /F</code></td></tr>
+            <tr><th scope="row">Leer el registro de un servicio</th><td class="l"><code>journalctl -u nginx</code></td><td class="w"><code>Get-WinEvent</code> o Visor de eventos</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-ports">
+      <div class="card-h"><h2 id="h-ports">Puertos habituales</h2></div>
+      <p class="sub">El puerto identifica qué servicio atiende en un servidor. El cliente usa un puerto temporal distinto en cada conexión.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Puerto</th><th scope="col">Uso</th><th scope="col" class="l">Servicio típico en Linux</th><th scope="col" class="w">Servicio típico en Windows</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">22</th><td>SSH, acceso remoto seguro</td><td class="l"><code>sshd</code></td><td class="w">Servidor OpenSSH (<code>sshd</code>)</td></tr>
+            <tr><th scope="row">53</th><td>DNS, traduce nombres a IP</td><td class="l"><code>named</code> (bind9), <code>systemd-resolved</code></td><td class="w">Servidor DNS (<code>DNS</code>)</td></tr>
+            <tr><th scope="row">67 y 68</th><td>DHCP, reparte direcciones IP (UDP)</td><td class="l"><code>isc-dhcp-server</code> (<code>dhcpd</code>), <code>dnsmasq</code></td><td class="w">Servidor DHCP (<code>DHCPServer</code>)</td></tr>
+            <tr><th scope="row">80 y 443</th><td>HTTP y HTTPS</td><td class="l"><code>nginx</code>, <code>apache2</code></td><td class="w">IIS (<code>W3SVC</code>)</td></tr>
+            <tr><th scope="row">445</th><td>Archivos compartidos (SMB)</td><td class="l">Samba (<code>smbd</code>)</td><td class="w">Servidor (<code>LanmanServer</code>)</td></tr>
+            <tr><th scope="row">1433</th><td>SQL Server</td><td class="l">Disponible en Linux, <code>mssql-server</code></td><td class="w"><code>MSSQLSERVER</code></td></tr>
+            <tr><th scope="row">3306</th><td>MySQL y MariaDB</td><td class="l"><code>mysql</code>, <code>mariadb</code></td><td class="w"><code>MySQL</code>, si se instala</td></tr>
+            <tr><th scope="row">3389</th><td>Escritorio remoto (RDP)</td><td class="l"><code>xrdp</code>, si se instala</td><td class="w">Servicios de Escritorio remoto (<code>TermService</code>)</td></tr>
+            <tr><th scope="row">5432</th><td>PostgreSQL</td><td class="l"><code>postgresql</code></td><td class="w"><code>postgresql</code>, si se instala</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  const STATE_ES = { inactive: 'inactivo', starting: 'iniciando', active: 'activo', stopping: 'deteniendo', failed: 'fallido' };
+  const fmt1 = n => n.toFixed(1).replace('.', ',');
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const expo = mean => -Math.log(1 - Math.random()) * mean;
+
+  /* ================= Sistemas operativos ================= */
+  const kv = (k, v, c, sep, pad) => '<span class="k">' + esc(pad ? k.padEnd(pad) : k) + '</span>' + (sep || '=') + '<span class="v">' + esc(v) + '</span>' + (c ? '   <span class="c"># ' + esc(c) + '</span>' : '');
+  const SV = 'C:\\Windows\\System32\\svchost.exe';
+
+  const OSES = {
+    linux: {
+      key: 'linux', label: 'Linux',
+      svcTitle: 'Servicios · systemd', unitHead: 'Unidad', cfgTitle: 'Archivo de unidad (.service)', logTitle: 'Diario del sistema (journal)',
+      targetLegend: 'Objetivo de arranque',
+      targets: [{ label: 'basic', name: 'basic.target' }, { label: 'multi-user', name: 'multi-user.target' }, { label: 'graphical', name: 'graphical.target' }],
+      defaultTarget: 1, defaultSel: 'nginx', pidStart: 388, pid: n => n,
+      roles: { web: 'nginx', db: 'postgresql', ssh: 'sshd', app: 'miapp', dhcp: 'dhcpd', dns: 'named', tftp: 'tftpd', img: 'fogmc' },
+      ports: { web: 80, db: 5432, ssh: 22, app: 8080, dhcp: 67, dns: 53 },
+      tcp: { syn: 'SYN-SENT', estab: 'ESTAB', tw: 'TIME-WAIT', listen: 'LISTEN' },
+      netTool: 'ss -tan', sig: 'SIGTERM',
+      tries: [
+        '<strong>Apaga y vuelve a arrancar.</strong> Los servicios que no dependen entre sí arrancan a la vez.',
+        '<strong>Mata postgresql.</strong> miapp se detiene porque lo necesita. postgresql vuelve solo si su política de reinicio lo permite.',
+        '<strong>Detén network.</strong> Antes se detienen sshd, postgresql, nginx y miapp, que dependen de él.',
+        '<strong>Abre Clientes y servidores.</strong> Detén nginx y mira cómo los clientes reciben conexiones rechazadas.',
+        '<strong>Detén named.</strong> En Clientes y servidores, un cliente ya no puede traducir nombres, pero sí conecta si escribe la IP.'
+      ],
+      c: {
+        start: s => 'sudo systemctl start ' + s.unit, stop: s => 'sudo systemctl stop ' + s.unit, restart: s => 'sudo systemctl restart ' + s.unit,
+        kill: s => 'sudo kill -9 ' + s.pid, enable: s => 'sudo systemctl enable ' + s.unit, disable: s => 'sudo systemctl disable ' + s.unit,
+        boot: t => 'sudo systemctl start ' + t, poweroff: 'sudo systemctl poweroff', reboot: 'sudo systemctl reboot'
+      },
+      rp: s => 'Restart=' + s.restart,
+      rpSched: s => 'Restart=' + s.restart + ': reinicio programado en ' + s.restartSec + ' s',
+      rpNone: () => 'Restart=no: el gestor no vuelve a lanzarlo',
+      killMsg: pid => 'El proceso principal (PID ' + pid + ') terminó por la señal SIGKILL',
+      enableMsg: (s, on) => on
+        ? 'Created symlink /etc/systemd/system/' + s.target + '.wants/' + s.unit + ' → /usr/lib/systemd/system/' + s.unit
+        : 'Removed /etc/systemd/system/' + s.target + '.wants/' + s.unit,
+      bootAria: s => 'Iniciar ' + s.unit + ' al arrancar',
+      cfg: (s, S, OSC) => {
+        const names = s.requires.map(d => S[d].unit).join(' ');
+        const o = ['<span class="sec">[Unit]</span>', kv('Description', s.desc)];
+        if (names) { o.push(kv('Requires', names, 'deben estar activos para iniciar este')); o.push(kv('After', names, 'orden de arranque')); }
+        o.push('', '<span class="sec">[Service]</span>', kv('ExecStart', s.exec, 'el programa que se lanza'), kv('Restart', s.restart, 'qué hace el gestor si el proceso muere'));
+        if (s.restart !== 'no') o.push(kv('RestartSec', String(s.restartSec)));
+        o.push('', '<span class="sec">[Install]</span>', kv('WantedBy', s.target, 'se inicia al alcanzar este objetivo'));
+        return o.join('\n');
+      },
+      services: [
+        { id: 'journald', unit: 'systemd-journald.service', desc: 'Diario del sistema (logs)', exec: '/usr/lib/systemd/systemd-journald', requires: [], restart: 'always', restartSec: 1, startMs: 500, tier: 0, cpu: 0.6, mem: 22 },
+        { id: 'cron', unit: 'cron.service', desc: 'Tareas programadas', exec: '/usr/sbin/cron -f', requires: ['journald'], restart: 'always', restartSec: 1, startMs: 400, tier: 1, cpu: 0.1, mem: 3 },
+        { id: 'dbus', unit: 'dbus.service', desc: 'Bus de mensajes entre programas', exec: '/usr/bin/dbus-daemon --system --nofork', requires: ['journald'], restart: 'always', restartSec: 1, startMs: 700, tier: 0, cpu: 0.4, mem: 6 },
+        { id: 'network', unit: 'NetworkManager.service', desc: 'Gestión de la red', exec: '/usr/sbin/NetworkManager --no-daemon', requires: ['dbus'], restart: 'on-failure', restartSec: 2, startMs: 1500, tier: 1, cpu: 1.2, mem: 38 },
+        { id: 'sshd', unit: 'sshd.service', desc: 'Acceso remoto seguro (SSH)', exec: '/usr/sbin/sshd -D', requires: ['network'], restart: 'on-failure', restartSec: 2, startMs: 600, tier: 1, cpu: 0.2, mem: 8 },
+        { id: 'dhcpd', unit: 'isc-dhcp-server.service', desc: 'Servidor DHCP (reparte direcciones IP)', exec: '/usr/sbin/dhcpd -f -cf /etc/dhcp/dhcpd.conf', requires: ['network'], restart: 'on-failure', restartSec: 2, startMs: 700, tier: 1, cpu: 0.1, mem: 6 },
+        { id: 'tftpd', unit: 'tftpd-hpa.service', desc: 'Servidor TFTP / PXE (cargador de arranque por red)', exec: '/usr/sbin/in.tftpd --foreground --address :69 --secure /tftpboot', requires: ['network'], restart: 'on-failure', restartSec: 2, startMs: 500, tier: 1, cpu: 0.1, mem: 2 },
+        { id: 'fogmc', unit: 'FOGMulticastManager.service', desc: 'FOG: gestor de multicast (reparte imágenes)', exec: '/usr/bin/php -q /var/www/fog/lib/service/multicastmanager.php', requires: ['network'], restart: 'on-failure', restartSec: 3, startMs: 1200, tier: 1, cpu: 0.8, mem: 60 },
+        { id: 'named', unit: 'named.service', desc: 'Servidor DNS (traduce nombres a IP)', exec: '/usr/sbin/named -f -u bind', requires: ['network'], restart: 'on-failure', restartSec: 2, startMs: 1200, tier: 1, cpu: 0.5, mem: 40 },
+        { id: 'postgresql', unit: 'postgresql.service', desc: 'Base de datos', exec: '/usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/16/main', requires: ['network'], restart: 'on-failure', restartSec: 2, startMs: 2000, tier: 1, cpu: 3, mem: 180 },
+        { id: 'nginx', unit: 'nginx.service', desc: 'Servidor web', exec: "/usr/sbin/nginx -g 'daemon off;'", requires: ['network'], restart: 'on-failure', restartSec: 2, startMs: 900, tier: 1, cpu: 1.5, mem: 24 },
+        { id: 'miapp', unit: 'miapp.service', desc: 'Aplicación web de ejemplo', exec: '/opt/miapp/bin/server --port 8080', requires: ['postgresql', 'nginx'], restart: 'on-failure', restartSec: 2, startMs: 1000, tier: 1, cpu: 4, mem: 120 },
+        { id: 'cups', unit: 'cups.service', desc: 'Servicio de impresión', exec: '/usr/sbin/cupsd -l', requires: ['dbus'], restart: 'no', restartSec: 0, startMs: 800, tier: 2, cpu: 0.2, mem: 14 },
+        { id: 'gdm', unit: 'gdm.service', desc: 'Inicio de sesión gráfico', exec: '/usr/sbin/gdm3', requires: ['dbus', 'cups'], restart: 'no', restartSec: 0, startMs: 1700, tier: 2, cpu: 2.5, mem: 96 }
+      ]
+    },
+    windows: {
+      key: 'windows', label: 'Windows',
+      svcTitle: 'Servicios · Service Control Manager', unitHead: 'Servicio', cfgTitle: 'Configuración en el Registro', logTitle: 'Visor de eventos',
+      targetLegend: 'Modo de inicio',
+      targets: [{ label: 'Modo seguro', name: 'modo seguro' }, { label: 'Inicio normal', name: 'inicio normal' }],
+      defaultTarget: 1, defaultSel: 'W3SVC', pidStart: 1204, pid: n => n - (n % 4),
+      roles: { web: 'W3SVC', db: 'MSSQLSERVER', ssh: 'sshd', app: 'MiApp', dhcp: 'DHCPServer', dns: 'DNS', tftp: 'WDSServer', img: 'WDSServer' },
+      ports: { web: 80, db: 1433, ssh: 22, app: 8080, dhcp: 67, dns: 53 },
+      tcp: { syn: 'SYN_SENT', estab: 'ESTABLISHED', tw: 'TIME_WAIT', listen: 'LISTENING' },
+      netTool: 'netstat -ano', sig: 'SERVICE_CONTROL_STOP',
+      tries: [
+        '<strong>Apaga y vuelve a arrancar.</strong> Los servicios que no dependen entre sí arrancan a la vez.',
+        '<strong>Mata MSSQLSERVER.</strong> MiApp se detiene porque lo necesita. SQL Server vuelve solo por su acción de recuperación.',
+        '<strong>Detén RpcSs.</strong> Casi todo depende de él, así que los demás servicios caen en cascada.',
+        '<strong>Abre Clientes y servidores.</strong> Detén W3SVC (IIS) y mira cómo los clientes reciben conexiones rechazadas.',
+        '<strong>Detén DNS.</strong> En Clientes y servidores, un cliente ya no puede traducir nombres, pero sí conecta si escribe la IP.'
+      ],
+      c: {
+        start: s => 'sc start ' + s.unit, stop: s => 'sc stop ' + s.unit, restart: s => 'Restart-Service ' + s.unit,
+        kill: s => 'taskkill /PID ' + s.pid + ' /F', enable: s => 'sc config ' + s.unit + ' start= auto', disable: s => 'sc config ' + s.unit + ' start= demand',
+        boot: () => null, poweroff: 'shutdown /s /t 0', reboot: 'shutdown /r /t 0'
+      },
+      rp: s => s.restart === 'no' ? 'sin acción de recuperación' : 'recuperación: reiniciar el servicio',
+      rpSched: s => 'Acción de recuperación: reiniciar el servicio en ' + s.restartSec + ' s',
+      rpNone: () => 'Sin acción de recuperación: el servicio queda detenido',
+      killMsg: pid => 'El proceso (PID ' + pid + ') fue terminado a la fuerza con taskkill /F',
+      enableMsg: (s, on) => 'Tipo de inicio de ' + s.unit + ': ' + (on ? 'Automático' : 'Manual'),
+      bootAria: s => 'Inicio automático de ' + s.unit,
+      cfg: (s, S, OSC) => {
+        const names = s.requires.join(', ');
+        const o = ['<span class="sec">HKLM\\SYSTEM\\CurrentControlSet\\Services\\' + esc(s.unit) + '</span>',
+          kv('DisplayName', s.desc, '', ' = ', 16), kv('ImagePath', s.exec, 'el ejecutable que lanza el gestor', ' = ', 16),
+          kv('ObjectName', s.acct, 'cuenta con la que corre', ' = ', 16), kv('Start', s.enabled ? '2' : '3', '2 = Automático, 3 = Manual', ' = ', 16)];
+        if (names) o.push(kv('DependOnService', names, 'deben estar activos antes', ' = ', 16));
+        o.push('', '<span class="sec">Recuperación tras un fallo</span>', kv('Primer error', s.restart !== 'no' ? 'Reiniciar el servicio' : 'No realizar ninguna acción', '', ' = ', 16));
+        if (s.restart !== 'no') o.push(kv('Esperar', s.restartSec + ' s', '', ' = ', 16));
+        return o.join('\n');
+      },
+      services: [
+        { id: 'EventLog', unit: 'EventLog', desc: 'Registro de eventos de Windows', exec: SV + ' -k LocalServiceNetworkRestricted -p', acct: 'NT AUTHORITY\\LocalService', requires: [], restart: 'restart', restartSec: 1, startMs: 500, tier: 0, cpu: 0.6, mem: 30 },
+        { id: 'RpcSs', unit: 'RpcSs', desc: 'Llamada a procedimiento remoto (RPC)', exec: SV + ' -k rpcss -p', acct: 'NT AUTHORITY\\NetworkService', requires: [], restart: 'restart', restartSec: 1, startMs: 700, tier: 0, cpu: 0.5, mem: 18 },
+        { id: 'Schedule', unit: 'Schedule', desc: 'Programador de tareas', exec: SV + ' -k netsvcs -p', acct: 'LocalSystem', requires: ['RpcSs'], restart: 'restart', restartSec: 1, startMs: 500, tier: 1, cpu: 0.2, mem: 14 },
+        { id: 'WAS', unit: 'WAS', desc: 'Servicio de activación de procesos de Windows', exec: SV + ' -k iissvcs', acct: 'LocalSystem', requires: ['RpcSs'], restart: 'restart', restartSec: 2, startMs: 800, tier: 1, cpu: 0.3, mem: 12 },
+        { id: 'Dhcp', unit: 'Dhcp', desc: 'Cliente DHCP', exec: SV + ' -k LocalServiceNetworkRestricted -p', acct: 'NT AUTHORITY\\LocalService', requires: ['RpcSs'], restart: 'restart', restartSec: 2, startMs: 1300, tier: 1, cpu: 0.4, mem: 10 },
+        { id: 'Spooler', unit: 'Spooler', desc: 'Cola de impresión', exec: 'C:\\Windows\\System32\\spoolsv.exe', acct: 'LocalSystem', requires: ['RpcSs'], restart: 'restart', restartSec: 2, startMs: 900, tier: 1, cpu: 0.2, mem: 16 },
+        { id: 'Dnscache', unit: 'Dnscache', desc: 'Cliente DNS', exec: SV + ' -k NetworkService -p', acct: 'NT AUTHORITY\\NetworkService', requires: ['Dhcp'], restart: 'restart', restartSec: 2, startMs: 900, tier: 1, cpu: 0.3, mem: 12 },
+        { id: 'sshd', unit: 'sshd', desc: 'Servidor OpenSSH', exec: 'C:\\Windows\\System32\\OpenSSH\\sshd.exe', acct: 'LocalSystem', requires: ['Dnscache'], restart: 'no', restartSec: 0, startMs: 600, tier: 1, cpu: 0.2, mem: 9 },
+        { id: 'DHCPServer', unit: 'DHCPServer', desc: 'Servidor DHCP', exec: SV + ' -k DHCPServer', acct: 'NT AUTHORITY\\LocalService', requires: ['Dnscache'], restart: 'restart', restartSec: 2, startMs: 800, tier: 1, cpu: 0.2, mem: 14 },
+        { id: 'WDSServer', unit: 'WDSServer', desc: 'Servicios de implementación de Windows (WDS)', exec: SV + ' -k WdsServer', acct: 'LocalSystem', requires: ['RpcSs', 'Dnscache'], restart: 'restart', restartSec: 3, startMs: 1500, tier: 1, cpu: 0.6, mem: 34 },
+        { id: 'DNS', unit: 'DNS', desc: 'Servidor DNS', exec: 'C:\\Windows\\System32\\dns.exe', acct: 'LocalSystem', requires: ['Dnscache'], restart: 'restart', restartSec: 2, startMs: 1300, tier: 1, cpu: 0.6, mem: 52 },
+        { id: 'MSSQLSERVER', unit: 'MSSQLSERVER', desc: 'SQL Server (MSSQLSERVER)', exec: '"C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MSSQLSERVER\\MSSQL\\Binn\\sqlservr.exe" -sMSSQLSERVER', acct: 'NT Service\\MSSQLSERVER', requires: ['Dnscache'], restart: 'restart', restartSec: 2, startMs: 2200, tier: 1, cpu: 3, mem: 420 },
+        { id: 'W3SVC', unit: 'W3SVC', desc: 'Servicio de publicación World Wide Web (IIS)', exec: SV + ' -k iissvcs', acct: 'LocalSystem', requires: ['WAS', 'Dnscache'], restart: 'restart', restartSec: 2, startMs: 1100, tier: 1, cpu: 1.5, mem: 30 },
+        { id: 'MiApp', unit: 'MiApp', desc: 'Aplicación web de ejemplo', exec: 'C:\\miapp\\server.exe --port 8080', acct: 'NT AUTHORITY\\NetworkService', requires: ['MSSQLSERVER', 'W3SVC'], restart: 'restart', restartSec: 2, startMs: 1000, tier: 1, cpu: 4, mem: 120 }
+      ]
+    }
+  };
+
+  /* ================= Estado global ================= */
+  let os = 'linux', OSC = OSES.linux, SERVICES = [];
+  const S = {};
+  let speed = 1, target = 1, booting = false, bootTime = null, nextPid = 388, sel = 'nginx', detailFor = null, epoch = 0;
+  let netReady = false;
+  const sleep = ms => { const e = epoch; return new Promise(r => setTimeout(() => { if (e === epoch) r(); }, ms / speed)); };
+  const newPid = () => { nextPid += 7 + Math.floor(Math.random() * 90); return OSC.pid(nextPid); };
+  const tname = () => OSC.targets[target].name;
+
+  const dependentsOf = id => SERVICES.filter(x => x.requires.includes(id)).map(x => x.id);
+  function depsDeep(id, acc = new Set()) {
+    dependentsOf(id).forEach(d => { if (!acc.has(d)) { acc.add(d); depsDeep(d, acc); } });
+    return acc;
+  }
+
+  /* ================= Diario ================= */
+  const logEl = $('#log');
+  function addLine(el) {
+    logEl.appendChild(el);
+    while (logEl.children.length > 300) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function log(who, msg, lvl = 'info') {
+    const d = document.createElement('div');
+    d.className = 'ln ' + lvl;
+    d.innerHTML = '<time></time><b></b><span></span>';
+    d.children[0].textContent = new Date().toLocaleTimeString('es-ES', { hour12: false });
+    d.children[1].textContent = who;
+    d.children[2].textContent = msg;
+    addLine(d);
+  }
+  function cmd(text) {
+    if (!text) return;
+    const d = document.createElement('div');
+    d.className = 'ln cmd';
+    d.innerHTML = '<span class="ps">' + (os === 'windows' ? '&gt;' : '$') + '</span><code></code>';
+    d.children[1].textContent = text;
+    addLine(d);
+  }
+
+  /* ================= Operaciones del gestor ================= */
+  function start(id) {
+    const s = S[id];
+    if (s.state === 'active') return Promise.resolve(true);
+    if (s.state === 'starting' && s.startP) return s.startP;
+    if (s.state === 'stopping' && s.stopP) return s.stopP.then(() => start(id));
+    const token = ++s.token;
+    s.state = 'starting'; s.phase = 'deps'; s.restartAt = null; s.note = '';
+    update();
+    const p = (async () => {
+      const waiting = s.requires.filter(d => S[d].state !== 'active');
+      if (waiting.length) log(id, 'Espera a: ' + waiting.map(d => S[d].unit).join(', '), 'info');
+      const results = await Promise.all(s.requires.map(d => start(d)));
+      if (token !== s.token) return false;
+      if (results.some(r => !r)) {
+        s.state = 'failed'; s.phase = null;
+        log(id, 'No arranca: una dependencia no está disponible', 'err');
+        update();
+        return false;
+      }
+      s.phase = 'exec';
+      log(id, 'Iniciando ' + s.desc.toLowerCase() + '…', 'info');
+      update();
+      await sleep(s.startMs);
+      if (token !== s.token) return false;
+      s.state = 'active'; s.phase = null; s.pid = newPid(); s.since = Date.now();
+      s.cpu = s.cpu || 0.1; s.mem = s.mem || 1;
+      log(id, 'Iniciado. PID ' + s.pid, 'ok');
+      update();
+      return true;
+    })();
+    s.startP = p;
+    p.then(() => { if (s.startP === p) s.startP = null; });
+    return p;
+  }
+
+  function stop(id, why) {
+    const s = S[id];
+    if (s.stopP) return s.stopP;
+    if (s.state === 'inactive') return Promise.resolve();
+    if (s.state === 'failed') {
+      s.token++; s.restartAt = null; s.state = 'inactive'; s.pid = null; s.since = null;
+      log(id, 'Estado de fallo limpiado', 'info');
+      update();
+      return Promise.resolve();
+    }
+    const p = (async () => {
+      const deps = dependentsOf(id).filter(d => ['active', 'starting', 'stopping'].includes(S[d].state));
+      await Promise.all(deps.map(d => stop(d, id)));
+      s.token++;
+      s.note = why ? 'Se detuvo porque ' + S[why].unit + ' dejó de estar activo. Nadie lo inicia de nuevo por su cuenta.' : '';
+      if (s.state === 'starting') {
+        s.state = 'inactive'; s.phase = null;
+        log(id, 'Arranque cancelado', 'warn');
+        update();
+        return;
+      }
+      s.state = 'stopping';
+      log(id, why ? 'Deteniendo: ' + S[why].unit + ' ya no está activo (' + OSC.sig + ')' : 'Deteniendo ' + s.desc.toLowerCase() + ' (' + OSC.sig + ')', 'info');
+      update();
+      await sleep(500);
+      s.state = 'inactive'; s.pid = null; s.since = null; s.cpu = 0; s.mem = 0;
+      log(id, 'Detenido', 'ok');
+      update();
+    })();
+    s.stopP = p;
+    p.then(() => { if (s.stopP === p) s.stopP = null; });
+    return p;
+  }
+
+  async function restart(id) {
+    const again = [...depsDeep(id)].filter(d => ['active', 'starting'].includes(S[d].state));
+    log(id, 'Reiniciando' + (again.length ? ' junto con quienes dependen de él: ' + again.join(', ') : ''), 'info');
+    await stop(id);
+    await Promise.all([id, ...again].map(x => start(x)));
+  }
+
+  function kill(id) {
+    const s = S[id];
+    if (s.state !== 'active') return;
+    const old = s.pid;
+    s.token++; s.state = 'failed'; s.pid = null; s.since = null; s.cpu = 0; s.mem = 0; s.note = '';
+    log(id, OSC.killMsg(old), 'err');
+    update();
+    dependentsOf(id).filter(d => ['active', 'starting'].includes(S[d].state)).forEach(d => stop(d, id));
+    if (s.restart !== 'no') {
+      const t = s.token;
+      s.restartAt = Date.now() + s.restartSec * 1000 / speed;
+      log(id, OSC.rpSched(s), 'warn');
+      sleep(s.restartSec * 1000).then(async () => {
+        if (t !== s.token) return;
+        s.restartAt = null; s.restarts++;
+        log(id, 'Ejecuta el reinicio programado', 'info');
+        await start(id);
+      });
+    } else {
+      log(id, OSC.rpNone(s), 'warn');
+    }
+    update();
+  }
+
+  async function boot() {
+    if (booting) return;
+    const ids = SERVICES.filter(d => S[d.id].enabled).map(d => d.id);
+    if (!ids.length || ids.every(id => S[id].state === 'active')) {
+      log('system', 'Todo lo que debe arrancar ya está en marcha', 'info');
+      return;
+    }
+    booting = true; bootTime = null; update();
+    const myEpoch = epoch;
+    log('system', 'Arranque (' + tname() + '): se inician los servicios de arranque automático', 'info');
+    const need = new Set();
+    const add = id => { need.add(id); S[id].requires.forEach(add); };
+    ids.forEach(add);
+    const serial = [...need].filter(id => S[id].state !== 'active').reduce((a, id) => a + S[id].startMs, 0);
+    const t0 = Date.now();
+    const res = await Promise.all(ids.map(id => start(id)));
+    if (myEpoch !== epoch) return;
+    bootTime = (Date.now() - t0) * speed / 1000;
+    const failed = res.filter(r => !r).length;
+    if (failed) log('system', 'Arranque completado con ' + failed + ' fallo(s)', 'warn');
+    else log('system', 'Arranque completado en ' + fmt1(bootTime) + ' s. Uno tras otro habrían tardado ' + fmt1(serial / 1000) + ' s.', 'ok');
+    booting = false; update();
+  }
+
+  async function shutdown() {
+    const ids = SERVICES.filter(d => S[d.id].state !== 'inactive').map(d => d.id);
+    if (!ids.length) { log('system', 'No hay servicios en marcha', 'info'); return; }
+    const myEpoch = epoch;
+    log('system', 'Apagando: cada servicio espera a que se detengan los que dependen de él', 'info');
+    await Promise.all(ids.map(id => stop(id)));
+    if (myEpoch !== epoch) return;
+    bootTime = null;
+    log('system', 'Todos los servicios detenidos', 'ok');
+    update();
+  }
+
+  /* ================= Lista, acciones ================= */
+  const listEl = $('#list');
+  const rowEls = {};
+  function buildList() {
+    listEl.innerHTML = '';
+    Object.keys(rowEls).forEach(k => delete rowEls[k]);
+    SERVICES.forEach(d => {
+      const li = document.createElement('li');
+      li.className = 'row'; li.dataset.id = d.id;
+      li.innerHTML =
+        '<div class="r-main"><span class="dot" aria-hidden="true"></span>' +
+        '<button type="button" class="r-select"><span class="r-name">' + esc(d.unit) + '</span><span class="r-desc">' + esc(d.desc) + '</span></button></div>' +
+        '<span class="pill" data-pill></span><span class="pid" data-pid></span>' +
+        '<div class="acts"><button class="btn" type="button" data-act="toggle"></button>' +
+        '<button class="btn" type="button" data-act="restart">Reiniciar</button>' +
+        '<button class="btn danger" type="button" data-act="kill">Matar</button>' +
+        '<button class="btn" type="button" data-act="show" aria-haspopup="dialog">Mostrar</button></div>' +
+        '<label class="boot"><input type="checkbox" id="boot-' + d.id + '" data-boot><span class="sw" aria-hidden="true"></span><span class="sr">' + esc(OSC.bootAria(d)) + '</span></label>';
+      listEl.appendChild(li);
+      rowEls[d.id] = li;
+    });
+  }
+
+  function action(id, act) {
+    const s = S[id];
+    select(id);
+    if (act === 'toggle') {
+      if (s.state === 'active' || s.state === 'starting') { cmd(OSC.c.stop(s)); stop(id); }
+      else { cmd(OSC.c.start(s)); start(id); }
+    } else if (act === 'restart') {
+      cmd(OSC.c.restart(s)); restart(id);
+    } else if (act === 'kill') {
+      cmd(OSC.c.kill(s)); kill(id);
+    } else if (act === 'show') {
+      openWin(id);
+    }
+  }
+  function toggleEnable(id, on) {
+    const s = S[id];
+    s.enabled = on; detailFor = null;
+    cmd(on ? OSC.c.enable(s) : OSC.c.disable(s));
+    log(id, OSC.enableMsg(s, on), 'info');
+    update();
+  }
+  function revealRow(id) {
+    const li = rowEls[id];
+    if (!li) return;
+    const top = li.offsetTop, bot = top + li.offsetHeight;
+    if (top < listEl.scrollTop) listEl.scrollTop = top;
+    else if (bot > listEl.scrollTop + listEl.clientHeight) listEl.scrollTop = bot - listEl.clientHeight;
+  }
+  function select(id) { sel = id; update(); revealRow(id); }
+  function flashRow(id) {
+    const li = rowEls[id];
+    if (!li) return;
+    li.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash');
+    clearTimeout(li._ft); li._ft = setTimeout(() => li.classList.remove('flash'), 1900);
+  }
+  // La lista muestra unos 6 servicios y el resto se ve con scroll.
+  const WIDE = matchMedia('(min-width: 980px)');
+  WIDE.addEventListener('change', () => fitList());
+  function fitList() {
+    const rows = $$('.row', listEl);
+    if (rows.length <= 6 || WIDE.matches) { listEl.style.maxHeight = ''; return; }
+    listEl.style.maxHeight = 'none';
+    listEl.style.maxHeight = (rows[6].offsetTop + Math.round(rows[6].offsetHeight * 0.45)) + 'px';
+  }
+  let listW = 0;
+  new ResizeObserver(() => {
+    const w = listEl.clientWidth;
+    if (w !== listW) { listW = w; fitList(); }
+  }).observe(listEl.parentElement);
+
+  // El detalle del servicio vive en una ventana flotante (<dialog> no modal): se mueve arrastrando su cabecera
+  // y se queda abierta mientras usas el resto de la página. Se actualiza en vivo.
+  const detailEl = $('#detail');
+  document.body.insertAdjacentHTML('beforeend',
+    '<dialog id="win" aria-labelledby="win-title"><div class="win-h" id="win-drag" title="Arrastra para mover"><h2 id="win-title">Detalle del servicio</h2><span class="help-grip" aria-hidden="true">⋮⋮ mover</span><button class="btn" type="button" id="win-close">Cerrar</button></div><div id="win-body"></div></dialog>');
+  const winEl = $('#win');
+  $('#win-body').appendChild(detailEl);
+  $('#detail-stash').remove();
+  let openerBtn = null, winMoved = false;
+  function clampWin() {
+    const w = winEl.offsetWidth, h = winEl.offsetHeight;
+    winEl.style.left = Math.min(Math.max(0, winEl.offsetLeft), Math.max(0, innerWidth - w)) + 'px';
+    winEl.style.top = Math.min(Math.max(0, winEl.offsetTop), Math.max(0, innerHeight - Math.min(h, 60))) + 'px';
+  }
+  function openWin(id) {
+    openerBtn = rowEls[id] ? $('[data-act="show"]', rowEls[id]) : null;
+    if (!winEl.open) {
+      winEl.show();
+      if (!winMoved) {
+        winEl.style.left = Math.max(0, (innerWidth - winEl.offsetWidth) / 2) + 'px';
+        winEl.style.top = Math.max(0, Math.min(60, innerHeight - winEl.offsetHeight)) + 'px';
+      } else clampWin();
+      $('#win-body').scrollTop = 0;
+    }
+  }
+  winEl.addEventListener('close', () => { if (openerBtn) openerBtn.focus(); });
+  window.addEventListener('resize', () => { if (winEl.open) clampWin(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && winEl.open && helpBox.hidden) winEl.close(); });
+  (function () {
+    const grip = $('#win-drag'); let dx = 0, dy = 0, on = false;
+    grip.addEventListener('pointerdown', e => {
+      if (e.target.closest('button') || e.button > 0) return;
+      dx = e.clientX - winEl.offsetLeft; dy = e.clientY - winEl.offsetTop; on = true; winMoved = true;
+      winEl.classList.add('dragging'); grip.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    grip.addEventListener('pointermove', e => {
+      if (!on) return;
+      const w = winEl.offsetWidth;
+      winEl.style.left = Math.min(Math.max(0, e.clientX - dx), Math.max(0, innerWidth - w)) + 'px';
+      winEl.style.top = Math.min(Math.max(0, e.clientY - dy), innerHeight - 50) + 'px';
+    });
+    const end = () => { on = false; winEl.classList.remove('dragging'); };
+    grip.addEventListener('pointerup', end); grip.addEventListener('pointercancel', end);
+  })();
+  $('#win-close').addEventListener('click', () => winEl.close());
+
+  listEl.addEventListener('click', e => {
+    const li = e.target.closest('.row');
+    if (!li) return;
+    const id = li.dataset.id;
+    const b = e.target.closest('button[data-act]');
+    if (b) { action(id, b.dataset.act); return; }
+    if (e.target.closest('.boot')) return;
+    select(id);
+  });
+  listEl.addEventListener('change', e => {
+    const inp = e.target.closest('input[data-boot]');
+    if (inp) toggleEnable(inp.closest('.row').dataset.id, inp.checked);
+  });
+
+  /* ================= Grafo de dependencias ================= */
+  const svg = $('#graph');
+  function buildGraph() {
+    const layer = {};
+    const lay = id => layer[id] != null ? layer[id] : (layer[id] = S[id].requires.length ? 1 + Math.max(...S[id].requires.map(lay)) : 0);
+    SERVICES.forEach(d => lay(d.id));
+    const L = [];
+    SERVICES.forEach(d => { (L[layer[d.id]] = L[layer[d.id]] || []).push(d.id); });
+    const NW = 100, NH = 38, GX = 10, GY = 40, PAD = 8;
+    const maxN = Math.max(...L.map(a => a.length));
+    const W = maxN * NW + (maxN - 1) * GX + PAD * 2;
+    const H = L.length * NH + (L.length - 1) * GY + PAD * 2;
+    const pos = {};
+    L.forEach((ids, li) => {
+      const rowW = ids.length * NW + (ids.length - 1) * GX;
+      const x0 = (W - rowW) / 2;
+      ids.forEach((id, i) => { pos[id] = { x: x0 + i * (NW + GX), y: PAD + li * (NH + GY) }; });
+    });
+    let edges = '', nodes = '';
+    SERVICES.forEach(d => d.requires.forEach(r => {
+      const a = pos[r], b = pos[d.id];
+      const x1 = a.x + NW / 2, y1 = a.y + NH, x2 = b.x + NW / 2, y2 = b.y - 1, my = (y1 + y2) / 2;
+      edges += '<g class="edge" data-from="' + r + '" data-to="' + d.id + '"><path d="M' + x1 + ' ' + y1 + ' C' + x1 + ' ' + my + ' ' + x2 + ' ' + my + ' ' + x2 + ' ' + (y2 - 7) +
+        '"/><polygon points="' + (x2 - 4.5) + ',' + (y2 - 8) + ' ' + (x2 + 4.5) + ',' + (y2 - 8) + ' ' + x2 + ',' + y2 + '"/></g>';
+    }));
+    SERVICES.forEach(d => {
+      const p = pos[d.id];
+      nodes += '<g class="node" data-id="' + d.id + '" tabindex="0" role="button" aria-label="Seleccionar ' + esc(d.unit) + '"><rect x="' + p.x + '" y="' + p.y +
+        '" width="' + NW + '" height="' + NH + '" rx="13"/><text x="' + (p.x + NW / 2) + '" y="' + (p.y + NH / 2 + 4.5) + '" text-anchor="middle">' + esc(d.id) + '</text></g>';
+    });
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.innerHTML = edges + nodes;
+  }
+  svg.addEventListener('click', e => { const n = e.target.closest('.node'); if (n) { select(n.dataset.id); flashRow(n.dataset.id); } });
+  svg.addEventListener('keydown', e => {
+    const n = e.target.closest('.node');
+    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(n.dataset.id); flashRow(n.dataset.id); }
+  });
+  function updateGraph() {
+    $$('.node', svg).forEach(n => {
+      n.dataset.state = S[n.dataset.id].state;
+      n.classList.toggle('sel', n.dataset.id === sel);
+    });
+    $$('.edge', svg).forEach(g => {
+      const from = S[g.dataset.from], to = S[g.dataset.to];
+      let c = '';
+      if (from.state === 'failed') c = 'broken';
+      else if (from.state === 'active' && to.state === 'active') c = 'live';
+      else if (to.state === 'starting') c = 'pending';
+      else if (from.state === 'inactive' || to.state === 'inactive') c = 'off';
+      g.setAttribute('class', 'edge ' + c);
+    });
+  }
+
+  /* ================= Detalle ================= */
+  function spark(aId, lId, data, min) {
+    const n = data.length;
+    if (n < 2) return;
+    const max = Math.max(min, ...data);
+    const pts = data.map((v, i) => (i * 120 / (n - 1)).toFixed(1) + ',' + (28.5 - v / max * 26).toFixed(1));
+    $('#' + lId).setAttribute('points', pts.join(' '));
+    $('#' + aId).setAttribute('d', 'M0,30 L' + pts.join(' L') + ' L120,30 Z');
+  }
+  function explain(s) {
+    const reqs = s.requires.map(d => S[d].unit);
+    const nDep = dependentsOf(s.id).length;
+    switch (s.state) {
+      case 'inactive':
+        return (s.note ? s.note + ' ' : '') + (reqs.length
+          ? 'Al iniciarlo, el gestor arranca antes lo que necesita (' + reqs.join(', ') + ') si no está activo.'
+          : 'No depende de nada, así que puede arrancar de inmediato.');
+      case 'starting':
+        if (s.phase === 'deps') {
+          const w = s.requires.filter(d => S[d].state !== 'active').map(d => S[d].unit);
+          return 'Espera a que terminen de arrancar sus dependencias: ' + (w.join(', ') || 'ya están listas') + '.';
+        }
+        return 'Lanza ' + s.exec.split(' ')[0].replace(/^"|"$/g, '') + ' y espera a que el proceso quede listo.';
+      case 'active':
+        return 'Corre con el PID ' + s.pid + '. El gestor vigila ese proceso' +
+          (s.restart !== 'no' ? ' y lo reinicia si muere (' + OSC.rp(s) + ').' : ' pero no lo reinicia si muere (' + OSC.rp(s) + ').') +
+          (nDep ? ' ' + (nDep === 1 ? 'Otro servicio depende' : nDep + ' servicios dependen') + ' de él.' : '');
+      case 'stopping':
+        return 'Recibió ' + OSC.sig + ' y cierra de forma ordenada. Antes se detuvieron los servicios que dependían de él.';
+      case 'failed':
+        if (s.restartAt) {
+          const left = Math.max(0, Math.ceil((s.restartAt - Date.now()) / 1000));
+          return 'El proceso murió. Según su política (' + OSC.rp(s) + '), el gestor lo reinicia en ' + left + ' s.';
+        }
+        return s.restart === 'no'
+          ? 'El proceso murió y su política no incluye reinicio (' + OSC.rp(s) + '): se queda en fallido hasta que alguien lo inicie.'
+          : 'No pudo arrancar porque una dependencia no está disponible.';
+    }
+    return '';
+  }
+
+  /* Descripción ampliada de cada servicio: qué hace, dónde escucha y qué pasa si se detiene */
+  const LONG = {
+    linux: {
+      journald: { t: 'Recoge los mensajes que escriben el núcleo, los servicios y las aplicaciones y los guarda en un diario binario consultable con journalctl. Es lo primero que arranca: así no se pierde ningún mensaje de los demás.', off: 'Los servicios siguen funcionando, pero dejan de quedar registrados sus mensajes y errores.' },
+      cron: { t: 'Ejecuta tareas programadas a una hora o con una periodicidad fijas: copias de seguridad, limpiezas de temporales, rotación de registros. Lee la configuración de /etc/crontab y de los crontab de cada usuario.', off: 'No se lanzan las tareas programadas hasta que vuelva a iniciarse.' },
+      dbus: { t: 'Bus de mensajes del sistema. Permite que los programas y servicios se comuniquen entre sí sin conocerse: por ejemplo, que el gestor de red avise al escritorio de que se cayó el wifi.', off: 'Los servicios que se comunican por D-Bus (red, impresión, sesión gráfica) dejan de funcionar.' },
+      network: { t: 'NetworkManager configura las interfaces de red: asigna la IP (a mano o por DHCP), las rutas y los servidores DNS, y gestiona wifi y VPN. Sin red ningún servicio puede aceptar conexiones de otros equipos.', off: 'La máquina pierde la conectividad y se detienen los servicios que escuchan en la red (sshd, DHCP, DNS, PostgreSQL, nginx y miapp).' },
+      sshd: { t: 'Servidor SSH: permite abrir una consola remota cifrada y copiar archivos con scp o sftp. Escucha conexiones nuevas en el puerto 22 y crea un proceso por cada sesión.', port: '22/tcp (SSH)', off: 'No se pueden abrir sesiones nuevas por SSH; las que ya estaban abiertas pueden seguir un tiempo.' },
+      dhcpd: { t: 'Servidor DHCP: reparte direcciones IP, puerta de enlace y servidores DNS a los equipos de la red cuando se conectan. Cada dirección se presta durante un tiempo (concesión) y se renueva.', port: '67/udp (DHCP)', off: 'Los equipos nuevos no consiguen IP; los que ya tienen concesión siguen funcionando hasta que caduque.' },
+      tftpd: { t: 'Servidor TFTP (tftpd-hpa). Entrega por la red los primeros archivos de arranque PXE: el cargador iPXE y el mini sistema FOS. TFTP es tan sencillo que cabe en el firmware de la tarjeta de red, por eso se usa antes de que el equipo tenga ningún sistema.', port: '69/udp (TFTP)', off: 'Los equipos que arrancan por red reciben «PXE-E32: TFTP open timeout» y no llegan a cargar el instalador.' },
+      fogmc: { t: 'Servicio de FOG que crea las sesiones de multicast. Cuando varios equipos piden la misma imagen, lanza udp-sender (udpcast) y emite cada bloque una sola vez a un grupo multicast, en lugar de enviar una copia a cada equipo. Espera a que se unan los equipos antes de empezar.', port: '9000/udp (sesión multicast)', off: 'No se crean sesiones de multicast: los equipos arrancan por red pero se quedan esperando la imagen.' },
+      named: { t: 'Servidor DNS (BIND). Traduce nombres como www.miapp.local a direcciones IP. Responde a las consultas de los clientes y, si no sabe la respuesta, la pregunta a otros servidores y la guarda en caché.', port: '53/udp y 53/tcp (DNS)', off: 'Los clientes no pueden resolver nombres, pero siguen conectando si escriben la IP directamente.' },
+      postgresql: { t: 'Gestor de bases de datos relacional. Guarda los datos de las aplicaciones en tablas y responde a consultas SQL. Crea un proceso por cada conexión de cliente.', port: '5432/tcp (PostgreSQL)', off: 'Las aplicaciones que lo usan (miapp) no pueden leer ni guardar datos, y por eso miapp también se detiene.' },
+      nginx: { t: 'Servidor web y proxy inverso. Sirve páginas y archivos por HTTP y reparte las peticiones hacia aplicaciones internas. Usa un proceso maestro y varios procesos trabajadores que atienden las conexiones.', port: '80/tcp (HTTP) y 443/tcp (HTTPS)', off: 'Los navegadores reciben «conexión rechazada»; miapp, que cuelga de él, también se detiene.' },
+      miapp: { t: 'Aplicación de ejemplo (el servicio que tú desarrollarías). Recibe las peticiones que le pasa nginx, consulta la base de datos y devuelve la respuesta. Es el último eslabón de la cadena de dependencias.', port: '8080/tcp (aplicación)', off: 'La web deja de dar respuesta aunque nginx y PostgreSQL sigan activos.' },
+      cups: { t: 'Sistema de impresión. Recibe los trabajos de impresión, los pone en cola y los envía a la impresora adecuada con su controlador.', port: '631/tcp (IPP)', off: 'No se puede imprimir y la sesión gráfica, que lo necesita, también se detiene.' },
+      gdm: { t: 'Gestor de inicio de sesión gráfico. Muestra la pantalla de acceso, autentica al usuario y lanza su escritorio. Solo se inicia en el objetivo «graphical».', off: 'Se pierde la pantalla de inicio de sesión gráfico; el resto de servicios no se ve afectado.' }
+    },
+    windows: {
+      EventLog: { t: 'Registro de eventos de Windows. Recoge los mensajes del sistema, las aplicaciones y la seguridad, y los guarda para consultarlos en el Visor de eventos.', off: 'Se deja de registrar lo que ocurre en el sistema y no se pueden consultar los eventos.' },
+      RpcSs: { t: 'Llamada a procedimiento remoto. Permite que un programa invoque funciones de otro, en la misma máquina o en otra. Casi todos los servicios de Windows dependen de él.', port: '135/tcp (RPC)', off: 'Se caen los servicios que dependen de él; en un Windows real, apagarlo provoca el reinicio del equipo.' },
+      Schedule: { t: 'Programador de tareas. Ejecuta tareas en una hora o ante un evento (arranque, inicio de sesión): actualizaciones, copias, mantenimientos.', off: 'No se ejecutan las tareas programadas.' },
+      WAS: { t: 'Servicio de activación de procesos de Windows. Crea y vigila los grupos de aplicaciones de IIS, que son los procesos que ejecutan los sitios web.', off: 'IIS (W3SVC) no puede atender sitios web y se detiene también.' },
+      Dhcp: { t: 'Cliente DHCP: pide a la red una dirección IP y la configuración (puerta de enlace, DNS) y renueva la concesión antes de que caduque.', port: '68/udp (cliente DHCP)', off: 'El equipo no obtiene ni renueva su IP automáticamente.' },
+      Spooler: { t: 'Cola de impresión. Guarda los trabajos de impresión y los envía a la impresora cuando está disponible.', off: 'No se puede imprimir.' },
+      Dnscache: { t: 'Cliente DNS. Resuelve nombres a direcciones IP y guarda las respuestas en caché para no repetir consultas.', off: 'Se resuelven los nombres con más lentitud o dejan de resolverse, y se detienen los servicios que dependen de él.' },
+      sshd: { t: 'Servidor OpenSSH. Permite abrir una consola remota cifrada y transferir archivos. Escucha conexiones nuevas en el puerto 22.', port: '22/tcp (SSH)', off: 'No se pueden abrir sesiones SSH nuevas.' },
+      DHCPServer: { t: 'Servidor DHCP: reparte direcciones IP, puerta de enlace y DNS a los equipos de la red mediante ámbitos (rangos de direcciones) con concesiones temporales.', port: '67/udp (DHCP)', off: 'Los equipos nuevos no consiguen IP; los que tienen concesión siguen hasta que caduque.' },
+      WDSServer: { t: 'Servicios de implementación de Windows (WDS). Atiende el arranque por red (PXE y TFTP) y envía imágenes de instalación, también por multicast: emite la imagen una sola vez para todos los equipos que se han unido a la sesión.', port: '69/udp (TFTP) y 4011/udp (PXE)', off: 'Los equipos no pueden arrancar por red ni recibir la imagen de instalación.' },
+      DNS: { t: 'Servidor DNS de Windows. Responde a las consultas de nombres de los clientes con las zonas que tiene configuradas y reenvía el resto a otros servidores.', port: '53/udp y 53/tcp (DNS)', off: 'Los clientes dejan de poder resolver nombres, aunque conectan si escriben la IP.' },
+      MSSQLSERVER: { t: 'Motor de base de datos SQL Server. Guarda los datos en tablas y atiende consultas T-SQL de las aplicaciones.', port: '1433/tcp (SQL Server)', off: 'Las aplicaciones no acceden a sus datos y MiApp también se detiene.' },
+      W3SVC: { t: 'Servicio web de IIS. Atiende las peticiones HTTP y HTTPS de los navegadores y las pasa a los sitios y aplicaciones web configurados.', port: '80/tcp (HTTP) y 443/tcp (HTTPS)', off: 'Los navegadores reciben «conexión rechazada» y MiApp también se detiene.' },
+      MiApp: { t: 'Aplicación de ejemplo (el servicio que tú desarrollarías). Recibe peticiones, consulta SQL Server y devuelve la respuesta. Es el último eslabón de la cadena de dependencias.', port: '8080/tcp (aplicación)', off: 'La web deja de dar respuesta aunque IIS y SQL Server sigan activos.' }
+    }
+  };
+  function aboutHTML(s) {
+    const L = (LONG[os] || {})[s.id];
+    const needs = s.requires.map(d => '<code>' + S[d].unit + '</code>');
+    const deps = dependentsOf(s.id).map(d => '<code>' + S[d].unit + '</code>');
+    let h = L ? '<p>' + L.t + '</p>' : '';
+    h += '<dl>';
+    if (L && L.port) h += '<dt>Escucha en</dt><dd>' + L.port + '</dd>';
+    h += '<dt>Necesita</dt><dd>' + (needs.length ? needs.join(', ') : 'Nada: puede arrancar el primero.') + '</dd>';
+    h += '<dt>Lo necesitan</dt><dd>' + (deps.length ? deps.join(', ') : 'Ningún otro servicio.') + '</dd>';
+    h += '<dt>Si se detiene</dt><dd>' + (L ? L.off : '—') + '</dd>';
+    h += '<dt>Si muere</dt><dd>' + (s.restart === 'no' ? 'No se reinicia solo' : 'El gestor lo reinicia solo (' + OSC.rp(s) + ')') + '</dd></dl>';
+    return h;
+  }
+  function ago(ms) {
+    const sec = Math.max(0, Math.round(ms / 1000));
+    if (sec < 60) return sec + ' s';
+    if (sec < 3600) return Math.floor(sec / 60) + ' min ' + (sec % 60) + ' s';
+    return Math.floor(sec / 3600) + ' h ' + Math.floor((sec % 3600) / 60) + ' min';
+  }
+  function updateDetail() {
+    const s = S[sel];
+    if (!s) return;
+    $('#detail').dataset.state = s.state;
+    if (detailFor !== sel) {
+      detailFor = sel;
+      $('#d-unit').textContent = s.unit;
+      $('#d-desc').textContent = s.desc;
+      $('#d-about').innerHTML = aboutHTML(s);
+      $('#d-unitfile').innerHTML = OSC.cfg(s, S, OSC);
+    }
+    $('#d-pill').textContent = STATE_ES[s.state];
+    $$('#d-flow li[data-s]').forEach(li => li.classList.toggle('on', li.dataset.s === s.state));
+    $('#d-explain').textContent = explain(s);
+    $('#m-pid').textContent = s.pid || '–';
+    $('#m-since').textContent = s.since ? ago(Date.now() - s.since) : '–';
+    $('#m-restarts').textContent = s.restarts;
+    $('#m-mem').textContent = s.state === 'active' || s.state === 'stopping' ? Math.round(s.mem) + ' MB' : '–';
+    $('#m-cpu').textContent = s.state === 'active' ? fmt1(s.cpu) + ' %' : '–';
+    spark('spark-area', 'spark-line', s.hist, 2);
+  }
+  function updateStats() {
+    const active = SERVICES.filter(d => S[d.id].state === 'active').length;
+    const failed = SERVICES.filter(d => S[d.id].state === 'failed').length;
+    $('#stats').innerHTML = active + ' de ' + SERVICES.length + ' activos · ' +
+      (failed ? '<span class="bad">' + failed + ' fallido' + (failed > 1 ? 's' : '') + '</span>' : '0 fallidos') +
+      (bootTime != null ? ' · arranque en ' + fmt1(bootTime) + ' s' : '');
+    $('#btn-boot').disabled = booting;
+    $('#btn-reboot').disabled = booting;
+  }
+  function update() {
+    SERVICES.forEach(d => {
+      const s = S[d.id], li = rowEls[d.id];
+      if (!li) return;
+      li.dataset.state = s.state;
+      li.setAttribute('aria-current', sel === d.id ? 'true' : 'false');
+      $('[data-pill]', li).textContent = STATE_ES[s.state];
+      $('[data-pid]', li).textContent = s.pid ? s.pid : '–';
+      const t = $('[data-act="toggle"]', li);
+      t.textContent = (s.state === 'active' || s.state === 'starting') ? 'Detener' : 'Iniciar';
+      t.disabled = s.state === 'stopping';
+      $('[data-act="restart"]', li).disabled = s.state !== 'active';
+      $('[data-act="kill"]', li).disabled = s.state !== 'active';
+      $('[data-boot]', li).checked = s.enabled;
+    });
+    updateGraph(); updateDetail(); updateStats();
+    if (netReady) { updateChips(); ddRender(); mcRender(); }
+  }
+
+  /* ================= Controles de servicios ================= */
+  function buildTargetSeg() {
+    $('#lg-target').textContent = OSC.targetLegend;
+    $('#target-seg').innerHTML = OSC.targets.map((t, i) =>
+      '<label><input type="radio" name="target" id="target-' + i + '" value="' + i + '"' + (i === target ? ' checked' : '') + '><span>' + esc(t.label) + '</span></label>').join('');
+    $$('input[name="target"]').forEach(r => r.addEventListener('change', () => {
+      target = +r.value;
+      SERVICES.forEach(d => { S[d.id].enabled = d.tier <= target; });
+      detailFor = null;
+      const n = SERVICES.filter(d => S[d.id].enabled).length;
+      log('system', 'Inicio: ' + tname() + ' (' + n + ' servicios de arranque automático)', 'info');
+      update();
+    }));
+  }
+  $('#btn-boot').addEventListener('click', () => { cmd(OSC.c.boot(tname())); boot(); });
+  $('#btn-shutdown').addEventListener('click', () => { cmd(OSC.c.poweroff); shutdown(); });
+  $('#btn-reboot').addEventListener('click', async () => {
+    if (booting) return;
+    cmd(OSC.c.reboot);
+    await shutdown();
+    await boot();
+  });
+  $('#btn-clear').addEventListener('click', () => { logEl.innerHTML = ''; });
+  $('#speed').addEventListener('change', e => { speed = +e.target.value; });
+
+  /* ================= Carga de un sistema operativo ================= */
+  function loadOS(key) {
+    epoch++;
+    os = key; OSC = OSES[key]; document.body.dataset.os = key;
+    SERVICES = OSC.services;
+    Object.keys(S).forEach(k => delete S[k]);
+    target = OSC.defaultTarget; booting = false; bootTime = null; nextPid = OSC.pidStart; sel = OSC.defaultSel; detailFor = null;
+    SERVICES.forEach(d => {
+      S[d.id] = Object.assign({ target: OSC.targets[d.tier] ? OSC.targets[d.tier].name : '' }, d, {
+        state: 'inactive', phase: null, pid: null, since: null, restarts: 0, cpu: 0, mem: 0, hist: [],
+        token: 0, startP: null, stopP: null, restartAt: null, note: '', enabled: d.tier <= target
+      });
+    });
+    $('#h-list').textContent = OSC.svcTitle;
+    $('#lh-unit').textContent = OSC.unitHead;
+    $('#d-cfgtitle').textContent = OSC.cfgTitle;
+    $('#h-log').textContent = OSC.logTitle;
+    logEl.innerHTML = '';
+    buildTargetSeg(); buildList(); buildGraph(); fitList(); listEl.scrollTop = 0;
+    log('system', 'Sistema iniciado: ' + tname(), 'ok');
+    SERVICES.forEach(d => {
+      const s = S[d.id];
+      if (d.tier <= target) {
+        s.state = 'active'; s.pid = newPid(); s.since = Date.now() - (90 + Math.random() * 300) * 1000;
+        s.cpu = d.cpu; s.mem = d.mem;
+        for (let i = 0; i < 40; i++) s.hist.push(Math.max(0.1, d.cpu * (0.5 + Math.random() * 1.1)));
+        log(d.id, 'Iniciado. PID ' + s.pid, 'ok');
+      } else {
+        for (let i = 0; i < 40; i++) s.hist.push(0);
+      }
+    });
+    if (netReady) netReset();
+    update();
+  }
+
+  /* ================= Pestañas ================= */
+  const TABS = ['servicios', 'red', 'dhcp', 'multicast'];
+  let curTab = 'servicios', topic = 'dd';
+  function showTab(name) {
+    if (!TABS.includes(name)) name = 'servicios';
+    curTab = name;
+    renderHelp();
+    TABS.forEach(t => {
+      const on = t === name;
+      if (t !== 'multicast') {
+        const tab = $('#tab-' + t), mine = t === 'dhcp' ? (name === 'dhcp' || name === 'multicast') : on;
+        tab.setAttribute('aria-selected', mine ? 'true' : 'false');
+        tab.tabIndex = mine ? 0 : -1;
+        if (t === 'dhcp') tab.value = name === 'multicast' ? 'mc' : (on ? topic : '');
+      }
+      $('#panel-' + t).hidden = !on;
+    });
+    if (name === 'red') { lastFrame = performance.now(); renderNet(); renderNetPanels(); }
+    if (name === 'multicast') mcRender();
+    if (name === 'dhcp') { $$('#panel-dhcp .topic').forEach(c => { c.hidden = c.dataset.topic !== topic; }); ddRender(); drawSeq(); }
+  }
+  function gotoTab(name) {
+    showTab(name);
+    try { if (location.hash.slice(1) !== name) location.hash = name; } catch (e) { /* sin hash */ }
+  }
+  $('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) gotoTab(b.dataset.tab); });
+  $('#tab-dhcp').addEventListener('change', e => {
+    if (e.target.value === 'mc') gotoTab('multicast');
+    else if (e.target.value) { topic = e.target.value; gotoTab('dhcp'); }
+  });
+  $('.tabs').addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT') return;
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const NAV = ['servicios', 'red', 'dhcp'];
+    const i = NAV.indexOf(curTab === 'multicast' ? 'dhcp' : curTab) + (e.key === 'ArrowRight' ? 1 : -1);
+    const nx = NAV[(i + NAV.length) % NAV.length];
+    gotoTab(nx); $('#tab-' + nx).focus();
+  });
+  window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+  $('#os-sel').addEventListener('change', e => { loadOS(e.target.value); renderHelp(); });
+  /* Ajustes (sistema operativo y velocidad) en un menú de opciones */
+  (function () {
+    const btn = $('#btn-set'), pop = $('#set-pop'), sum = $('#set-sum');
+    const label = () => {
+      const o = $('input[name="set-os"]:checked', pop), v = $('input[name="set-speed"]:checked', pop);
+      sum.textContent = o.nextElementSibling.textContent + ' · ' + v.nextElementSibling.textContent;
+    };
+    const setOpen = on => { pop.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); };
+    btn.addEventListener('click', e => { e.stopPropagation(); setOpen(pop.hidden); });
+    pop.addEventListener('change', e => {
+      const r = e.target; if (r.type !== 'radio') return;
+      const sel = $(r.name === 'set-os' ? '#os-sel' : '#speed');
+      sel.value = r.value; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      label();
+    });
+    document.addEventListener('click', e => { if (!pop.hidden && !e.target.closest('.settings')) setOpen(false); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) { setOpen(false); btn.focus(); } });
+  })();
+
+
+  /* ================= Ayuda contextual ================= */
+  const helpBtn = $('#btn-help'), helpBox = $('#help');
+  function renderHelp() {
+    const list = a => '<ul class="help-list">' + a.map(x => '<li>' + x + '</li>').join('') + '</ul>';
+    const intro = '<p><strong>¿Qué es esto?</strong> Un servicio es un programa que corre en segundo plano, sin ventana y sin usuario delante: la red, el registro del sistema, el servidor web. El gestor de servicios del sistema los arranca en el orden correcto, vigila que sigan vivos y los detiene al apagar. Cambia entre Linux y Windows para ver los mismos conceptos con sus nombres reales, y pasa a las otras pestañas para ver cómo los clientes llegan a esos servicios. Todo es una simulación.</p>';
+    let t, h;
+    if (curTab === 'servicios') {
+      t = 'Ayuda · Servicios';
+      h = '<p>Cada fila es un servicio del sistema. Pulsa Mostrar para abrir en una ventana su configuración, su estado y sus métricas. Prueba esto:</p>' + list(OSC.tries);
+    } else if (curTab === 'red') {
+      t = 'Ayuda · Clientes y servidores';
+      h = '<p>Elige una arquitectura y el servicio que usan los clientes, y cambia los controles para ver cómo responde el servidor. Con la que tienes elegida, prueba esto:</p><h3 class="help-h3">Qué observar</h3>' +
+        list(OBSERVE[NET.topo].concat([
+          'Detén un servicio con su botón. Es el mismo del panel Servicios y el cambio queda anotado en su diario.',
+          'La pestaña «Emuladores» explica DHCP y DNS, cómo se establece la conexión TCP y cómo se reparten los puertos, y simula una instalación por multicast.'
+        ]));
+    } else if (curTab === 'multicast') {
+      t = 'Ayuda · Emuladores · Instalar por multicast';
+      h = '<p>Instalar un sistema en muchos equipos a la vez sin ir de uno en uno con un USB. Prueba esto:</p>' + list([
+        '<strong>Reproducir</strong> sigue a un equipo nuevo desde el arranque por red (PXE) hasta que recibe la imagen.',
+        '<strong>Detén el servidor DHCP, el TFTP o el de imágenes</strong> y vuelve a reproducir para ver en qué paso se rompe y qué error ve el equipo.',
+        '<strong>Sube el número de equipos</strong> y mira la ficha: con unicast el servidor envía la imagen una vez por equipo; con multicast la envía una sola vez.',
+        'Con un solo equipo, multicast no ahorra nada: la ventaja crece con cada equipo que se añade.',
+        'Para que funcione de verdad, los switches deben soportar IGMP snooping, o el grupo multicast se inunda por toda la red.'
+      ]);
+    } else if (curTab === 'dhcp') {
+      t = 'Ayuda · Emuladores';
+      h = '<p>Antes de pedir una página, el cliente necesita una IP (DHCP) y la IP del nombre que escribió (DNS). Después abre la conexión TCP y, por último, el servidor y el cliente usan puertos distintos. Prueba esto:</p>' + list([
+        '<strong>Reproducir</strong> recorre el diagrama de DHCP y DNS paso a paso.',
+        '<strong>Detén DHCP o DNS</strong> en su botón y reproduce de nuevo para ver dónde se rompe.',
+        'En «Una conexión, paso a paso» se ven los tres mensajes del saludo TCP; el servicio es el que elegiste en «Clientes y servidores».',
+        'En «¿Cambia el puerto…?» conecta varios clientes: el puerto del servidor no cambia, el del cliente sí.'
+      ]);
+      if (topic === 'pt') {
+        h += '<h3 class="help-h3">Sockets y puertos</h3>' + list([
+          '<strong>Socket de escucha.</strong> Solo espera nuevas conexiones. Está en estado <code>' + OSC.tcp.listen + '</code> y no se ocupa nunca.',
+          '<strong>Socket de la conexión.</strong> Lo crea el sistema operativo con <code>accept()</code> por cada cliente. Usa el mismo puerto local que el de escucha.',
+          '<strong>Cuatro datos.</strong> Una conexión se identifica por la IP y el puerto del cliente, y la IP y el puerto del servidor. Basta con que uno difiera para que sea otra conexión.',
+          '<strong>Excepciones.</strong> Algunos protocolos negocian puertos adicionales a propósito. FTP abre una conexión de datos aparte de la de control (puerto 21). TFTP responde desde un puerto nuevo. Las videollamadas reservan puertos dinámicos para el audio y el vídeo. En HTTP, SSH o las bases de datos todo va por el puerto de escucha.'
+        ]);
+      }
+    }
+    $('#help-title').textContent = t;
+    const open = {};
+    $$('#help-body details[data-ref]').forEach(d => { open[d.dataset.ref] = d.open; });
+    $('#help-body').innerHTML = intro + h;
+    // Referencia: copias de las tablas de la sección de referencia oculta (la columna de tu sistema sigue resaltada)
+    const ref = document.createElement('div');
+    ref.className = 'help-ref';
+    ref.innerHTML = '<div class="ref-t">Referencia</div>';
+    [['h-eq', 'Conceptos'], ['h-cmd', 'Comandos equivalentes'], ['h-ports', 'Puertos habituales']].forEach(([hid, name]) => {
+      const card = $('#' + hid).closest('section');
+      const d = document.createElement('details');
+      d.dataset.ref = hid; d.open = !!open[hid];
+      d.innerHTML = '<summary>' + name + '</summary>';
+      $$('.sub, .table-scroll', card).forEach(n => d.appendChild(n.cloneNode(true)));
+      ref.appendChild(d);
+    });
+    $('#help-body').appendChild(ref);
+  }
+  function setHelp(open) {
+    helpBox.hidden = !open;
+    helpBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { renderHelp(); helpBox.focus(); }
+  }
+  helpBtn.addEventListener('click', () => setHelp(helpBox.hidden));
+  $('#help-close').addEventListener('click', () => { setHelp(false); helpBtn.focus(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !helpBox.hidden) { setHelp(false); helpBtn.focus(); } });
+  // La ayuda se queda abierta mientras trabajas: se cierra con Cerrar, con Escape o con el botón Ayuda.
+  // Se puede mover arrastrando la cabecera con el ratón (o el dedo).
+  (function () {
+    const grip = $('#help-drag'); let dx = 0, dy = 0, on = false;
+    grip.addEventListener('pointerdown', e => {
+      if (e.target.closest('button') || e.button > 0) return;
+      const r = helpBox.getBoundingClientRect();
+      helpBox.classList.add('moved', 'dragging');
+      helpBox.style.left = r.left + 'px'; helpBox.style.top = r.top + 'px'; helpBox.style.width = r.width + 'px';
+      dx = e.clientX - r.left; dy = e.clientY - r.top; on = true;
+      grip.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    grip.addEventListener('pointermove', e => {
+      if (!on) return;
+      const w = helpBox.offsetWidth, h = helpBox.offsetHeight;
+      const x = Math.min(Math.max(0, e.clientX - dx), Math.max(0, innerWidth - w));
+      const y = Math.min(Math.max(0, e.clientY - dy), innerHeight - 40);
+      helpBox.style.left = x + 'px'; helpBox.style.top = y + 'px';
+    });
+    const end = () => { on = false; helpBox.classList.remove('dragging'); };
+    grip.addEventListener('pointerup', end); grip.addEventListener('pointercancel', end);
+    grip.addEventListener('dblclick', () => { helpBox.classList.remove('moved'); helpBox.style.left = helpBox.style.top = helpBox.style.width = ''; });
+  })();
+
+  /* ================= Red: clientes y servidores ================= */
+  const TOPOS = [
+    { id: 'one', name: 'Uno a uno', desc: 'Un cliente habla con un servidor. Es la base de todo lo demás.', spof: 'Sí', scale: 'Ninguna',
+      glyph: '<circle cx="12" cy="16" r="4"/><circle cx="68" cy="16" r="5"/><line x1="16" y1="16" x2="63" y2="16"/>' },
+    { id: 'many', name: 'Un servidor, muchos clientes', desc: 'Todos comparten el mismo servicio y cada cliente abre su propia conexión.', spof: 'Sí', scale: 'Limitada por el servidor',
+      glyph: '<line x1="12" y1="6" x2="64" y2="16"/><line x1="12" y1="16" x2="64" y2="16"/><line x1="12" y1="26" x2="64" y2="16"/><circle cx="12" cy="6" r="3.5"/><circle cx="12" cy="16" r="3.5"/><circle cx="12" cy="26" r="3.5"/><circle cx="68" cy="16" r="5"/>' },
+    { id: 'lb', name: 'Balanceador y réplicas', desc: 'Un balanceador reparte las peticiones entre varias copias del servidor.', spof: 'No, salvo el balanceador', scale: 'Horizontal',
+      glyph: '<line x1="10" y1="9" x2="34" y2="16"/><line x1="10" y1="23" x2="34" y2="16"/><line x1="44" y1="16" x2="66" y2="6"/><line x1="44" y1="16" x2="66" y2="16"/><line x1="44" y1="16" x2="66" y2="26"/><circle cx="8" cy="9" r="3.5"/><circle cx="8" cy="23" r="3.5"/><rect x="34" y="10" width="10" height="12" rx="2"/><circle cx="70" cy="6" r="3.5"/><circle cx="70" cy="16" r="3.5"/><circle cx="70" cy="26" r="3.5"/>' },
+    { id: 'tiers', name: 'Tres capas', desc: 'Web, aplicación y base de datos. Cada capa llama a la siguiente.', spof: 'En cada capa', scale: 'Por capas',
+      glyph: '<line x1="12" y1="16" x2="28" y2="16"/><line x1="38" y1="16" x2="46" y2="16"/><line x1="56" y1="16" x2="62" y2="16"/><circle cx="8" cy="16" r="3.5"/><rect x="28" y="10" width="10" height="12" rx="2"/><rect x="46" y="10" width="10" height="12" rx="2"/><rect x="64" y="10" width="10" height="12" rx="2"/>' },
+    { id: 'p2p', name: 'Entre iguales (P2P)', desc: 'No hay servidor central: cada nodo es cliente y servidor a la vez.', spof: 'No', scale: 'Crece con los nodos',
+      glyph: '<polyline points="40,3 53,13 48,28 32,28 27,13 40,3"/><line x1="40" y1="3" x2="48" y2="28"/><line x1="40" y1="3" x2="32" y2="28"/><line x1="27" y1="13" x2="53" y2="13"/><circle cx="40" cy="3" r="3"/><circle cx="53" cy="13" r="3"/><circle cx="48" cy="28" r="3"/><circle cx="32" cy="28" r="3"/><circle cx="27" cy="13" r="3"/>' },
+    { id: 'mcast', name: 'Instalación de imágenes por multicast', desc: 'Un servidor emite la imagen del sistema una sola vez y todos los equipos la reciben a la vez.', spof: 'Sí, el servidor de imágenes', scale: 'Casi constante con los equipos',
+      glyph: '<circle cx="8" cy="16" r="5"/><line x1="13" y1="16" x2="32" y2="16"/><rect x="32" y="10" width="10" height="12" rx="2"/><line x1="42" y1="16" x2="64" y2="5"/><line x1="42" y1="16" x2="64" y2="16"/><line x1="42" y1="16" x2="64" y2="27"/><circle cx="68" cy="5" r="3.5"/><circle cx="68" cy="16" r="3.5"/><circle cx="68" cy="27" r="3.5"/>' }
+  ];
+  const OBSERVE = {
+    one: [
+      'Cada petición abre una conexión, se procesa y vuelve la respuesta. Con un solo cliente casi nunca hay cola.',
+      'Sube la frecuencia: cuando una petición llega antes de que termine la anterior y solo hay un hilo, empieza a esperar.',
+      'Detén el servicio con su botón: el cliente recibe conexiones rechazadas porque nadie escucha en ese puerto.'
+    ],
+    many: [
+      'Sube clientes y frecuencia hasta que lleguen más peticiones de las que caben en los hilos. Aparece la cola y la latencia crece.',
+      'Si la cola se llena, el servidor descarta peticiones (503). Pulsa Ráfaga para provocarlo.',
+      'Sube los hilos de atención: el servidor aguanta más carga, pero consume más memoria.',
+      'Detén el servicio y mira la tabla de conexiones: solo quedan intentos fallidos.'
+    ],
+    lb: [
+      'Haz clic en una réplica para tumbarla. El balanceador deja de enviarle tráfico y reparte entre las demás.',
+      'Si caen las tres réplicas, el balanceador no tiene a quién enviar y todo falla con 503.',
+      'Detén el servicio del balanceador: aunque las réplicas estén bien, nadie puede llegar a ellas. Es el punto único de fallo que queda.'
+    ],
+    tiers: [
+      'La capa más lenta marca el ritmo de todo el conjunto. Con pocos hilos en la aplicación, la cola se forma ahí.',
+      'Detén la base de datos: las peticiones llegan hasta esa capa, fallan allí y el error vuelve por las dos capas anteriores.',
+      'Detén la capa web: los clientes ni siquiera llegan a la aplicación.'
+    ],
+    mcast: [
+      'Pulsa «Iniciar instalación»: los equipos se unen al grupo y el servidor emite cada bloque una sola vez; el switch lo copia a todos.',
+      'Sube el número de equipos: la duración prevista no cambia, porque el servidor sigue enviando la imagen una sola vez. Compara «Bloques enviados» con «Bloques recibidos».',
+      'Cambia el modo de envío a unicast: el servidor manda una copia a cada equipo y tarda tantas veces más como equipos haya.',
+      'Haz clic en el servidor para detenerlo: nadie recibe la imagen y los equipos se quedan esperando. Los pasos previos (DHCP y TFTP) están en «Emuladores» → «Instalar por multicast».'
+    ],
+    p2p: [
+      'No hay un punto único de fallo: cada nodo sirve y consume a la vez.',
+      'Sube el número de nodos y mira cuántas conexiones distintas aparecen en la tabla. Crecen casi con el cuadrado de los nodos.',
+      'Aquí no hay servicio del sistema que detener: los nodos son aplicaciones, no un servicio central.'
+    ]
+  };
+
+  const NET = {
+    topo: 'many', clients: 4, perTopo: {}, rate: 0.8, workers: 2, ms: 400, role: 'web', paused: false, T: 0,
+    nodes: [], byId: {}, links: [], reqs: [], conns: [], nextId: 1, rr: 0,
+    st: null, win: null, rps: [], lat: []
+  };
+  const netSvg = $('#netsvg');
+  const netPk = new Map();
+
+  function resetStats() {
+    NET.st = { ok: 0, refused: 0, rejected: 0, timeout: 0 };
+    NET.win = { ok: 0, latSum: 0, latN: 0, t0: NET.T };
+    NET.rps = []; NET.lat = [];
+  }
+  const roleSvc = r => OSC.roles[r];
+  function nodeState(n) {
+    if (n.svc) { const st = S[n.svc].state; return st === 'active' ? 'up' : (st === 'starting' ? 'starting' : 'down'); }
+    return n.up === false ? 'down' : 'up';
+  }
+
+  function buildTopo() {
+    const N = NET;
+    N.nodes = []; N.byId = {}; N.links = []; N.reqs = []; N.conns = []; N.T = 0; N.rr = 0; N.mc = null;
+    resetStats();
+    const add = n => { n.procs = []; n.queue = []; N.nodes.push(n); N.byId[n.id] = n; return n; };
+    const t = N.topo;
+    if (t === 'p2p') {
+      const n = Math.max(2, Math.min(8, N.clients));
+      for (let i = 0; i < n; i++) {
+        const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+        add({ id: 'p' + i, kind: 'peer', label: 'Nodo ' + (i + 1), x: 350 + 150 * Math.cos(a), y: 180 + 120 * Math.sin(a), w: 78, h: 36, ip: '192.168.1.' + (30 + i), port: 6881, svc: null, sender: true, main: true, workers: N.workers, backlog: 6, procMs: N.ms });
+      }
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) N.links.push(['p' + i, 'p' + j]);
+      return;
+    }
+    if (t === 'mcast') {
+      const nc = N.clients, W = os === 'windows', chh = nc > 8 ? 26 : 34;
+      add({ id: 'srv', kind: 'server', manual: true, up: true, main: true, mcast: true, svc: OSC.roles.img, title: W ? 'Servidor WDS' : 'Servidor FOG', sub: (W ? 'multicast' : 'udp-sender') + ' :9000', x: 84, y: 180, w: 124, h: 96, ip: '192.168.1.10', port: 9000, workers: 1, backlog: 0, procMs: 0 });
+      add({ id: 'sw', kind: 'sw', title: 'Switch', sub: 'IGMP snooping', x: 340, y: 180, w: 104, h: 56, ip: '', port: 0 });
+      for (let i = 0; i < nc; i++) add({ id: 'c' + i, kind: 'client', prog: true, label: 'PC' + (i + 1), x: 610, y: nc === 1 ? 180 : 28 + i * (304 / (nc - 1)), w: 78, h: chh, ip: '192.168.1.' + (20 + i) });
+      N.links.push(['srv', 'sw']);
+      for (let i = 0; i < nc; i++) N.links.push(['sw', 'c' + i]);
+      mcInit();
+      return;
+    }
+    const nc = t === 'one' ? 1 : N.clients;
+    const ch = nc > 8 ? 20 : 26;
+    for (let i = 0; i < nc; i++) {
+      add({ id: 'c' + i, kind: 'client', label: 'C' + (i + 1), x: 70, y: nc === 1 ? 180 : 30 + i * (300 / (nc - 1)), w: 50, h: ch, ip: '192.168.1.' + (20 + i), sender: true });
+    }
+    const link = (a, b) => N.links.push([a, b]);
+    if (t === 'one' || t === 'many') {
+      const r = N.role;
+      add({ id: 'srv', kind: 'server', main: true, title: S[roleSvc(r)].id, sub: ':' + OSC.ports[r], x: 600, y: 180, w: 124, h: 112, ip: '192.168.1.10', port: OSC.ports[r], svc: roleSvc(r), workers: N.workers, backlog: 12, procMs: N.ms });
+      for (let i = 0; i < nc; i++) link('c' + i, 'srv');
+    } else if (t === 'lb') {
+      add({ id: 'lb', kind: 'server', title: 'Balanceador', sub: S[roleSvc(N.role)].id + ' :' + OSC.ports[N.role], x: 350, y: 180, w: 124, h: 76, ip: '192.168.1.10', port: OSC.ports[N.role], svc: roleSvc(N.role), workers: 40, backlog: 40, procMs: 8 });
+      for (let i = 0; i < 3; i++) {
+        add({ id: 'r' + i, kind: 'server', replica: true, manual: true, up: true, main: true, title: 'Réplica ' + (i + 1), sub: ':' + (N.role === 'app' ? 9090 : 8080), x: 610, y: 66 + i * 114, w: 112, h: 78, ip: '192.168.1.' + (11 + i), port: N.role === 'app' ? 9090 : 8080, svc: null, workers: N.workers, backlog: 8, procMs: N.ms });
+        link('lb', 'r' + i);
+      }
+      for (let i = 0; i < nc; i++) link('c' + i, 'lb');
+    } else if (t === 'tiers') {
+      add({ id: 'web', kind: 'server', title: S[roleSvc('web')].id, sub: 'capa web :80', x: 290, y: 180, w: 112, h: 96, ip: '192.168.1.10', port: 80, svc: roleSvc('web'), workers: 20, backlog: 30, procMs: 25 });
+      add({ id: 'app', kind: 'server', main: true, title: S[roleSvc('app')].id, sub: 'capa app :8080', x: 450, y: 180, w: 112, h: 96, ip: '192.168.1.11', port: 8080, svc: roleSvc('app'), workers: N.workers, backlog: 10, procMs: N.ms });
+      add({ id: 'db', kind: 'server', title: S[roleSvc('db')].id, sub: 'capa datos :' + OSC.ports.db, x: 610, y: 180, w: 112, h: 96, ip: '192.168.1.12', port: OSC.ports.db, svc: roleSvc('db'), workers: 4, backlog: 10, procMs: 80 });
+      link('web', 'app'); link('app', 'db');
+      for (let i = 0; i < nc; i++) link('c' + i, 'web');
+    }
+  }
+
+  function nodeHtml(n) {
+    const x = n.x - n.w / 2, y = n.y - n.h / 2;
+    const cl = n.kind === 'client';
+    let h = '<g class="nd ' + (cl ? 'cl' : 'sv') + (n.manual ? ' tog' : '') + '" data-nid="' + n.id + '"' +
+      (n.manual ? ' tabindex="0" role="button" data-tog="' + n.id + '" aria-label="' + esc(n.title) + ': tumbar o levantar"' : '') + '>';
+    h += '<rect class="box" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + n.w + '" height="' + n.h + '" rx="' + (cl ? 6 : 10) + '"/>';
+    if (cl && n.prog) {
+      h += '<text x="' + n.x.toFixed(1) + '" y="' + (y + 14).toFixed(1) + '">' + esc(n.label) + '</text>' +
+        '<rect class="trk" x="' + (x + 6).toFixed(1) + '" y="' + (y + n.h - 10).toFixed(1) + '" width="' + (n.w - 12) + '" height="4" rx="2"/>' +
+        '<rect class="fill" x="' + (x + 6).toFixed(1) + '" y="' + (y + n.h - 10).toFixed(1) + '" width="0" height="4" rx="2"/>';
+    } else if (cl) {
+      h += '<text x="' + n.x.toFixed(1) + '" y="' + (n.y + 4).toFixed(1) + '">' + esc(n.label) + '</text>';
+    } else if (n.kind === 'sw') {
+      h += '<text x="' + n.x.toFixed(1) + '" y="' + (n.y - 2).toFixed(1) + '">' + esc(n.title) + '</text><text class="sub-t" x="' + n.x.toFixed(1) + '" y="' + (n.y + 14).toFixed(1) + '">' + esc(n.sub) + '</text>';
+    } else if (n.kind === 'peer') {
+      h += '<text x="' + n.x.toFixed(1) + '" y="' + (n.y - 2).toFixed(1) + '">' + esc(n.label) + '</text>' +
+        '<rect class="trk" x="' + (x + 8).toFixed(1) + '" y="' + (n.y + 7).toFixed(1) + '" width="' + (n.w - 16) + '" height="5" rx="2.5"/>' +
+        '<rect class="fill" x="' + (x + 8).toFixed(1) + '" y="' + (n.y + 7).toFixed(1) + '" width="0" height="5" rx="2.5"/>';
+    } else {
+      h += '<text x="' + n.x.toFixed(1) + '" y="' + (y + 21).toFixed(1) + '">' + esc(n.title) + '</text>' +
+        '<text class="sub-t" x="' + n.x.toFixed(1) + '" y="' + (y + 38).toFixed(1) + '">' + esc(n.sub) + '</text>' +
+        '<rect class="trk" x="' + (x + 10).toFixed(1) + '" y="' + (y + n.h - 32).toFixed(1) + '" width="' + (n.w - 20) + '" height="6" rx="3"/>' +
+        '<rect class="fill" x="' + (x + 10).toFixed(1) + '" y="' + (y + n.h - 32).toFixed(1) + '" width="0" height="6" rx="3"/>' +
+        '<text class="qt" x="' + n.x.toFixed(1) + '" y="' + (y + n.h - 10).toFixed(1) + '"></text>';
+    }
+    return h + '</g>';
+  }
+  function buildNetSvg() {
+    const N = NET;
+    let links = '';
+    N.links.forEach(l => { const a = N.byId[l[0]], b = N.byId[l[1]]; links += '<line class="lnk" x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) + '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '"/>'; });
+    netSvg.innerHTML = '<g>' + links + '</g><g>' + N.nodes.map(nodeHtml).join('') + '</g><g id="pks"></g>';
+    netPk.clear();
+    N.nodes.forEach(n => {
+      const g = $('[data-nid="' + n.id + '"]', netSvg);
+      n.el = { g, fill: $('.fill', g), qt: $('.qt', g), st: null, w: -1, q: null };
+    });
+  }
+  netSvg.addEventListener('click', e => { const g = e.target.closest('[data-tog]'); if (g) toggleReplica(g.dataset.tog); });
+  netSvg.addEventListener('keydown', e => {
+    const g = e.target.closest('[data-tog]');
+    if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleReplica(g.dataset.tog); }
+  });
+  function toggleReplica(id) { const n = NET.byId[id]; if (!n) return; if (n.svc) action(n.svc, 'toggle'); else n.up = !n.up; }
+
+  /* --- simulación --- */
+  function moveSeg(r, fromId, toId) {
+    const a = NET.byId[fromId], b = NET.byId[toId];
+    r.seg = { from: a, to: b, t0: NET.T, dur: 260 + Math.hypot(a.x - b.x, a.y - b.y) * 0.9 };
+  }
+  function spawn(c) {
+    const N = NET;
+    if (N.reqs.length > 240) return;
+    let path;
+    if (N.topo === 'lb') path = [c.id, 'lb', '*'];
+    else if (N.topo === 'tiers') path = [c.id, 'web', 'app', 'db'];
+    else if (N.topo === 'p2p') { const o = N.nodes.filter(x => x !== c); path = [c.id, o[Math.floor(Math.random() * o.length)].id]; }
+    else path = [c.id, 'srv'];
+    const first = N.byId[path[1]];
+    const r = { id: N.nextId++, path, i: 0, phase: 'out', born: N.T, fail: null, seg: null, hangNode: null, hangUntil: 0, bi: 0 };
+    r.conn = { id: r.id, cip: c.ip, cport: 49152 + Math.floor(Math.random() * 16000), sip: first.ip, sport: first.port, state: 'syn', until: 0, pid: null };
+    N.conns.push(r.conn);
+    N.reqs.push(r);
+    moveSeg(r, path[0], path[1]);
+  }
+  function pickReplica() {
+    const ups = NET.nodes.filter(n => n.replica && n.up);
+    if (!ups.length) return null;
+    return ups[NET.rr++ % ups.length];
+  }
+  function startProc(n, r) {
+    r.phase = 'proc';
+    n.procs.push({ req: r, end: NET.T + n.procMs * rnd(0.7, 1.3) });
+  }
+  function accept(n, r) {
+    const st = nodeState(n);
+    if (st === 'down') { failBack(r, 'refused'); return; }
+    if (st === 'starting') { r.phase = 'hang'; r.hangNode = n; r.hangUntil = NET.T + 2500; return; }
+    if (r.i === 1) { r.conn.state = 'estab'; r.conn.pid = n.svc ? S[n.svc].pid : null; }
+    if (n.procs.length < n.workers) startProc(n, r);
+    else if (n.queue.length < n.backlog) { r.phase = 'queue'; n.queue.push(r); }
+    else failBack(r, 'rejected');
+  }
+  function afterProc(r, n) {
+    const nx = r.path[r.i + 1];
+    if (nx === undefined) { startBack(r); return; }
+    let id = nx;
+    if (id === '*') {
+      const rep = pickReplica();
+      if (!rep) { failBack(r, 'rejected'); return; }
+      id = rep.id; r.path[r.i + 1] = id;
+    }
+    r.phase = 'out';
+    moveSeg(r, n.id, id);
+  }
+  function startBack(r) { r.phase = 'back'; r.bi = r.i; moveSeg(r, r.path[r.bi], r.path[r.bi - 1]); }
+  function failBack(r, reason) { r.fail = reason; startBack(r); }
+  function finish(r, fail) {
+    const N = NET;
+    const i = N.reqs.indexOf(r);
+    if (i >= 0) N.reqs.splice(i, 1);
+    r.phase = 'done';
+    if (fail) {
+      N.st[fail]++;
+      const ci = N.conns.indexOf(r.conn);
+      if (ci >= 0) N.conns.splice(ci, 1);
+    } else {
+      N.st.ok++;
+      const lat = N.T - r.born;
+      N.win.ok++; N.win.latSum += lat; N.win.latN++;
+      r.conn.state = 'tw'; r.conn.until = N.T + 4000;
+    }
+  }
+
+  /* --- instalación de imágenes por multicast --- */
+  function mcInit() {
+    const N = NET;
+    const m = { mode: N.mcMode || 'multicast', t0: N.T, total: 40, rate: 8, nextBlock: 0, sent: 0, recv: 0, blockNo: 0, started: false, startedAt: 0, done: false, doneAt: 0, pks: [], pid: 1, rr: 0, secSent: 0, clients: [], byId: {} };
+    N.nodes.filter(n => n.kind === 'client').forEach(n => {
+      const c = { id: n.id, state: 'wait', prog: 0, got: 0, sent: 0, cip: n.ip, cport: 49152 + Math.floor(Math.random() * 16000) };
+      m.clients.push(c); m.byId[n.id] = c;
+    });
+    N.mc = m;
+  }
+  function mcPk(m, ph, a, b, target) {
+    const A = NET.byId[a], B = NET.byId[b];
+    m.pks.push({ id: m.pid++, ph, from: A, to: B, target, t0: NET.T, dur: 260 + Math.hypot(A.x - B.x, A.y - B.y) * 0.9 });
+  }
+  function stepMc(T) {
+    const N = NET, m = N.mc, up = nodeState(N.byId.srv) === 'up';
+    m.clients.forEach((c, i) => { if (c.state === 'wait' && up && T >= m.t0 + 600 + i * 350) c.state = 'joined'; });
+    if (!m.started && up && m.clients.every(c => c.state !== 'wait')) {
+      m.started = true; m.startedAt = T; m.nextBlock = T + 400;
+      m.clients.forEach(c => { if (c.state === 'joined') c.state = 'recv'; });
+    }
+    if (m.started && up && !m.done && T >= m.nextBlock) {
+      m.nextBlock = T + 1000 / m.rate;
+      let target = null;
+      if (m.mode === 'multicast') { if (m.blockNo < m.total) { m.blockNo++; target = '*'; } }
+      else {
+        const pend = m.clients.filter(c => c.sent < m.total);
+        if (pend.length) { const c = pend[m.rr++ % pend.length]; c.sent++; target = c.id; }
+      }
+      if (target) { m.sent++; m.secSent++; mcPk(m, 'a', 'srv', 'sw', target); }
+    }
+    m.pks.slice().forEach(p => {
+      if (T < p.t0 + p.dur) return;
+      m.pks.splice(m.pks.indexOf(p), 1);
+      if (p.ph === 'a') {
+        const tg = p.target === '*' ? m.clients.filter(c => c.state === 'recv') : [m.byId[p.target]];
+        tg.forEach(c => mcPk(m, 'b', 'sw', c.id, c.id));
+      } else {
+        const c = m.byId[p.target];
+        c.got++; m.recv++; c.prog = Math.min(1, c.got / m.total);
+        if (c.got >= m.total) c.state = 'done';
+        if (!m.done && m.clients.every(x => x.state === 'done')) { m.done = true; m.doneAt = T; }
+      }
+    });
+  }
+
+  function stepNet(dt) {
+    const N = NET;
+    N.T += dt;
+    const T = N.T;
+    if (N.mc) stepMc(T);
+    N.nodes.forEach(n => {
+      if (!n.sender) return;
+      if (n.next == null) n.next = T + expo(1000 / N.rate);
+      if (T >= n.next) { n.next = T + expo(1000 / N.rate); spawn(n); }
+    });
+    N.reqs.slice().forEach(r => {
+      if (r.phase === 'out' || r.phase === 'back') {
+        if (T >= r.seg.t0 + r.seg.dur) {
+          if (r.phase === 'out') { r.i++; accept(N.byId[r.path[r.i]], r); }
+          else { r.bi--; if (r.bi === 0) finish(r, r.fail); else moveSeg(r, r.path[r.bi], r.path[r.bi - 1]); }
+        }
+      } else if (r.phase === 'hang' && T >= r.hangUntil) {
+        finish(r, 'timeout');
+      }
+    });
+    N.nodes.forEach(n => {
+      if (n.kind === 'client') return;
+      const st = nodeState(n);
+      if (st === 'down') {
+        if (n.procs.length) n.procs.splice(0).forEach(p => failBack(p.req, 'refused'));
+        if (n.queue.length) n.queue.splice(0).forEach(q => failBack(q, 'refused'));
+        return;
+      }
+      n.procs.slice().forEach(p => {
+        if (T >= p.end) { n.procs.splice(n.procs.indexOf(p), 1); afterProc(p.req, n); }
+      });
+      while (st === 'up' && n.procs.length < n.workers && n.queue.length) startProc(n, n.queue.shift());
+    });
+    N.conns = N.conns.filter(c => !(c.state === 'tw' && T >= c.until));
+    if (T - N.win.t0 >= 1000) {
+      const w = N.win;
+      if (N.mc) {
+        const cs = N.mc.clients;
+        N.rps.push(N.mc.secSent); N.mc.secSent = 0;
+        N.lat.push(cs.reduce((a, c) => a + c.prog, 0) / cs.length * 100);
+      } else {
+        N.rps.push(w.ok);
+        N.lat.push(w.latN ? w.latSum / w.latN : (N.lat.length ? N.lat[N.lat.length - 1] : 0));
+      }
+      if (N.rps.length > 40) { N.rps.shift(); N.lat.shift(); }
+      w.ok = 0; w.latSum = 0; w.latN = 0; w.t0 += 1000;
+    }
+  }
+
+  /* --- dibujo --- */
+  function renderNet() {
+    const N = NET, T = N.T;
+    const g = $('#pks', netSvg);
+    if (!g) return;
+    const seen = new Set();
+    N.reqs.forEach(r => {
+      let x, y, cls;
+      if (r.phase === 'out' || r.phase === 'back') {
+        const s = r.seg, f = Math.min(1, Math.max(0, (T - s.t0) / s.dur));
+        x = s.from.x + (s.to.x - s.from.x) * f; y = s.from.y + (s.to.y - s.from.y) * f;
+        cls = r.phase === 'out' ? 'out' : (r.fail ? 'fail' : 'back');
+      } else if (r.phase === 'hang') {
+        x = r.hangNode.x - r.hangNode.w / 2 - 8; y = r.hangNode.y; cls = 'wait';
+      } else return;
+      let c = netPk.get(r.id);
+      if (!c) { c = document.createElementNS(NS, 'circle'); c.setAttribute('r', '5'); g.appendChild(c); netPk.set(r.id, c); }
+      c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1));
+      const cn = 'pk ' + cls;
+      if (c.getAttribute('class') !== cn) c.setAttribute('class', cn);
+      seen.add(r.id);
+    });
+    if (N.mc) N.mc.pks.forEach(p => {
+      const f = Math.min(1, Math.max(0, (T - p.t0) / p.dur)), key = 'm' + p.id;
+      let c = netPk.get(key);
+      if (!c) { c = document.createElementNS(NS, 'circle'); c.setAttribute('r', '4.5'); g.appendChild(c); netPk.set(key, c); }
+      c.setAttribute('cx', (p.from.x + (p.to.x - p.from.x) * f).toFixed(1)); c.setAttribute('cy', (p.from.y + (p.to.y - p.from.y) * f).toFixed(1));
+      const cn = 'pk ' + (p.ph === 'a' ? 'out' : 'back');
+      if (c.getAttribute('class') !== cn) c.setAttribute('class', cn);
+      seen.add(key);
+    });
+    netPk.forEach((c, id) => { if (!seen.has(id)) { c.remove(); netPk.delete(id); } });
+    N.nodes.forEach(n => {
+      if (!n.el || n.kind === 'sw') return;
+      if (n.kind === 'client') {
+        if (n.prog && n.el.fill && N.mc) {
+          const cc = N.mc.byId[n.id], wpx = Math.round((n.w - 12) * (cc ? cc.prog : 0));
+          if (n.el.w !== wpx) { n.el.fill.setAttribute('width', wpx); n.el.w = wpx; }
+        }
+        return;
+      }
+      if (n.mcast && N.mc) {
+        const m = N.mc, st = nodeState(n);
+        if (n.el.st !== st) { n.el.g.dataset.state = st; n.el.st = st; }
+        const avg = m.clients.reduce((a, c) => a + c.prog, 0) / m.clients.length, wpx = Math.round((n.w - 20) * avg);
+        if (n.el.w !== wpx) { n.el.fill.setAttribute('width', wpx); n.el.w = wpx; }
+        const joined = m.clients.filter(c => c.state !== 'wait').length;
+        const txt = st === 'down' ? 'detenido' : (m.done ? 'completo' : (m.started ? 'emitiendo' : 'unidos ' + joined + '/' + m.clients.length));
+        if (n.el.q !== txt) { n.el.qt.textContent = txt; n.el.q = txt; }
+        return;
+      }
+      const st = nodeState(n);
+      if (n.el.st !== st) { n.el.g.dataset.state = st; n.el.st = st; }
+      const full = n.w - (n.kind === 'peer' ? 16 : 20);
+      const wpx = Math.round(full * Math.min(1, n.procs.length / n.workers));
+      if (n.el.w !== wpx) { n.el.fill.setAttribute('width', wpx); n.el.w = wpx; }
+      if (n.el.qt) {
+        const txt = st === 'up' ? 'cola ' + n.queue.length : (st === 'starting' ? 'iniciando' : 'detenido');
+        if (n.el.q !== txt) { n.el.qt.textContent = txt; n.el.q = txt; }
+      }
+    });
+  }
+
+  const MT_ID = ['n-rps', 'n-lat', 'n-conn', 'n-queue', 'n-util', 'n-ok', 'n-ref', 'n-rej', 'n-to'];
+  const MC_LABELS = ['Bloques/s del servidor', 'Progreso medio', 'Equipos unidos', 'Bloques enviados', 'Bloques recibidos', 'Equipos completos', 'Tiempo transcurrido', 'Modo de envío', 'Duración prevista'];
+  let MT_DEF = null, metSubDef = null;
+  function setMetricLabels(mc) {
+    if (!MT_DEF) { MT_DEF = MT_ID.map(id => $('#' + id).previousElementSibling.textContent); metSubDef = $('#met-sub').textContent; }
+    const labs = mc ? MC_LABELS : MT_DEF;
+    MT_ID.forEach((id, i) => { const dt = $('#' + id).previousElementSibling; if (dt.textContent !== labs[i]) dt.textContent = labs[i]; });
+    const sub = mc ? 'Con multicast el servidor envía cada bloque una sola vez y el switch lo copia a todos los equipos que se han unido al grupo. Con unicast envía una copia por equipo, y por eso tarda tantas veces más como equipos haya.' : metSubDef;
+    if ($('#met-sub').textContent !== sub) $('#met-sub').textContent = sub;
+  }
+  function renderMcPanels() {
+    const N = NET, m = N.mc;
+    setMetricLabels(true);
+    const cs = m.clients, n = cs.length;
+    const end = m.started ? (m.done ? m.doneAt : N.T) : N.T, el = m.started ? (end - m.startedAt) / 1000 : 0;
+    const avg = cs.reduce((a, c) => a + c.prog, 0) / n;
+    $('#n-rps').textContent = N.rps.length ? N.rps[N.rps.length - 1] : 0;
+    $('#n-lat').textContent = Math.round(avg * 100) + ' %';
+    $('#n-conn').textContent = cs.filter(c => c.state !== 'wait').length + ' / ' + n;
+    $('#n-queue').textContent = m.sent;
+    $('#n-util').textContent = m.recv;
+    $('#n-ok').textContent = cs.filter(c => c.state === 'done').length;
+    $('#n-ref').textContent = Math.round(el) + ' s';
+    $('#n-rej').textContent = m.mode === 'multicast' ? 'multicast' : 'unicast';
+    const est = (m.mode === 'multicast' ? 1 : n) * m.total / m.rate;
+    $('#n-to').textContent = Math.round(est) + ' s';
+    spark('sp1-a', 'sp1-l', N.rps, 10);
+    spark('sp2-a', 'sp2-l', N.lat, 100);
+    const W = os === 'windows', tcp = OSC.tcp, uni = m.mode === 'unicast';
+    let rows = '';
+    cs.slice().reverse().forEach(c => {
+      if (c.state === 'wait' || c.state === 'done') return;
+      if (uni) rows += '<tr><td class="st-estab">' + tcp.estab + '</td><td>' + c.cip + ':' + c.cport + '</td><td>192.168.1.10:2049</td><td class="col-pid"></td></tr>';
+      else rows += '<tr><td class="st-listen">' + (W ? 'UDP' : 'UNCONN') + '</td><td>' + c.cip + ':9000</td><td>239.255.50.1:9000</td><td class="col-pid"></td></tr>';
+    });
+    $('#conns').innerHTML = rows || '<tr><td colspan="4">Sin conexiones</td></tr>';
+  }
+  function renderNetPanels() {
+    const N = NET;
+    if (N.mc) { renderMcPanels(); return; }
+    setMetricLabels(false);
+    const mains = N.nodes.filter(n => n.main);
+    const util = mains.length ? mains.reduce((a, n) => a + Math.min(1, n.procs.length / n.workers), 0) / mains.length : 0;
+    const queue = N.nodes.reduce((a, n) => a + (n.kind === 'client' ? 0 : n.queue.length), 0);
+    const estab = N.conns.filter(c => c.state === 'estab').length;
+    const rps = N.rps.length ? N.rps[N.rps.length - 1] : 0;
+    const lat = N.lat.length ? N.lat[N.lat.length - 1] : 0;
+    $('#n-rps').textContent = rps;
+    $('#n-lat').textContent = lat ? Math.round(lat) + ' ms' : '–';
+    $('#n-conn').textContent = estab;
+    $('#n-queue').textContent = queue;
+    $('#n-util').textContent = Math.round(util * 100) + ' %';
+    $('#n-ok').textContent = N.st.ok;
+    $('#n-ref').textContent = N.st.refused;
+    $('#n-rej').textContent = N.st.rejected;
+    $('#n-to').textContent = N.st.timeout;
+    spark('sp1-a', 'sp1-l', N.rps, 4);
+    spark('sp2-a', 'sp2-l', N.lat, 400);
+    const tcp = OSC.tcp;
+    let rows = '';
+    N.nodes.forEach(n => {
+      if (n.kind === 'client' || nodeState(n) !== 'up') return;
+      rows += '<tr><td class="st-listen">' + tcp.listen + '</td><td>*</td><td>0.0.0.0:' + n.port + '</td><td class="col-pid">' + (n.svc ? (S[n.svc].pid || '') : '') + '</td></tr>';
+    });
+    N.conns.slice().sort((a, b) => b.id - a.id).slice(0, 16).forEach(c => {
+      rows += '<tr><td class="st-' + c.state + '">' + tcp[c.state] + '</td><td>' + c.cip + ':' + c.cport + '</td><td>' + c.sip + ':' + c.sport + '</td><td class="col-pid">' + (c.pid || '') + '</td></tr>';
+    });
+    $('#conns').innerHTML = rows || '<tr><td colspan="4">Sin conexiones</td></tr>';
+  }
+
+  /* --- controles de la pestaña de red --- */
+  function buildTopos() {
+    $('#topos').innerHTML = TOPOS.map(t =>
+      '<button type="button" class="topo" role="radio" aria-checked="' + (t.id === NET.topo) + '" data-topo="' + t.id + '">' +
+      '<span class="topo-h"><svg class="glyph" viewBox="0 0 80 32" aria-hidden="true">' + t.glyph + '</svg>' +
+      '<h3>' + t.name + '</h3></span><p>' + t.desc + '</p>' +
+      '<dl><div><dt>Punto único de fallo</dt><dd>' + t.spof + '</dd></div><div><dt>Escala</dt><dd>' + t.scale + '</dd></div></dl></button>').join('');
+    topoSummary();
+  }
+  function topoSummary() {
+    const t = TOPOS.find(x => x.id === NET.topo);
+    $('#topo-cur').innerHTML = t.name + '<small>' + t.desc + '</small>';
+  }
+  $('#topos').addEventListener('click', e => {
+    const b = e.target.closest('[data-topo]');
+    if (!b) return;
+    NET.topo = b.dataset.topo;
+    NET.clients = NET.perTopo[NET.topo] != null ? NET.perTopo[NET.topo] : (NET.topo === 'p2p' ? 5 : (NET.topo === 'mcast' ? 6 : 4));
+    topoSummary(); $('#topo-acc').open = false; $('#topo-acc > summary').focus();
+    $$('.topo').forEach(x => x.setAttribute('aria-checked', x === b ? 'true' : 'false'));
+    syncControls();
+    rebuildNet();
+  });
+  function syncControls() {
+    const t = NET.topo, cs = $('#rg-clients');
+    cs.min = t === 'p2p' ? 2 : 1; cs.max = t === 'p2p' ? 8 : 12;
+    NET.clients = Math.min(+cs.max, Math.max(+cs.min, NET.clients));
+    cs.value = NET.clients;
+    cs.disabled = t === 'one';
+    $('#o-clients').textContent = t === 'one' ? 1 : NET.clients;
+    const mc = t === 'mcast';
+    $('#l-clients').textContent = t === 'p2p' ? 'Nodos' : (mc ? 'Equipos' : 'Clientes');
+    ['rg-rate', 'rg-workers', 'rg-ms'].forEach(id => { $('#' + id).closest('.rg').hidden = mc; });
+    $('#mc-mode-field').hidden = !mc;
+    $('#sel-mcmode').value = NET.mcMode || 'multicast';
+    $('#btn-burst').textContent = mc ? 'Iniciar instalación' : 'Ráfaga';
+    $('#btn-reset').hidden = mc;
+    buildRoleSelect();
+    $('#scene-hint').textContent = t === 'lb' ? 'Haz clic en una réplica para tumbarla o levantarla.' : (mc ? 'Haz clic en el servidor, o usa el servicio de Controles, para detenerlo o iniciarlo.' : '');
+    drawSeq();
+    renderHelp();
+  }
+  const ROLE_OPTS = { one: ['web', 'ssh', 'db', 'app'], many: ['web', 'ssh', 'db', 'app'], lb: ['web', 'app'], tiers: [], p2p: [], mcast: [] };
+  const ROLE_HINT = {
+    one: 'Elige a qué servicio se conecta el cliente.',
+    many: 'Elige qué servicio comparten todos los clientes.',
+    lb: 'Elige qué servicio reparte el balanceador entre las réplicas.',
+    tiers: 'En tres capas la cadena es fija: web → aplicación → base de datos.',
+    p2p: 'Entre iguales no hay un servicio central que elegir.',
+    mcast: 'El servidor de imágenes es FOG en Linux y WDS en Windows.'
+  };
+  function roleOpts(t) { return ROLE_OPTS[t] || []; }
+  function buildRoleSelect() {
+    const sel = $('#sel-role'), opts = roleOpts(NET.topo);
+    if (!opts.includes(NET.role)) NET.role = opts[0] || 'web';
+    $('#role-hint').textContent = ROLE_HINT[NET.topo];
+    if (!opts.length) {
+      sel.innerHTML = '<option>' + (NET.topo === 'tiers' ? 'Cadena fija' : (NET.topo === 'mcast' ? (os === 'windows' ? 'WDS · multicast' : 'FOG · multicast') : 'Sin servicio central')) + '</option>';
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = opts.map(r =>
+      '<option value="' + r + '"' + (r === NET.role ? ' selected' : '') + '>' + esc(S[OSC.roles[r]].unit) + ' · puerto ' + OSC.ports[r] + '</option>').join('');
+  }
+  function netServices() {
+    const N = NET, t = N.topo;
+    if (t === 'p2p') return [];
+    if (t === 'mcast') return [{ id: OSC.roles.img, label: 'Servidor de imágenes · multicast' + (os === 'windows' ? ' (WDS)' : ' (FOG)') }];
+    if (t === 'one' || t === 'many') return [{ id: roleSvc(N.role), label: 'Servicio de destino · puerto ' + OSC.ports[N.role] }];
+    if (t === 'lb') return [{ id: roleSvc(N.role), label: 'Balanceador · puerto ' + OSC.ports[N.role] }];
+    return [{ id: roleSvc('web'), label: 'Capa web · puerto 80' }, { id: roleSvc('app'), label: 'Capa de aplicación · puerto 8080' }, { id: roleSvc('db'), label: 'Capa de datos · puerto ' + OSC.ports.db }];
+  }
+  function buildChips() {
+    const list = netServices();
+    $('#chips').innerHTML = list.map(c =>
+      '<div class="chip" data-svc="' + c.id + '"><span class="dot" aria-hidden="true"></span>' +
+      '<div class="t"><code>' + esc(S[c.id].unit) + '</code><small>' + esc(c.label) + '</small></div>' +
+      '<span class="pill" data-cp></span><button class="btn" type="button" data-chip="' + c.id + '"></button></div>').join('');
+    $('#chips-note').textContent = list.length
+      ? 'Estos son los mismos servicios del panel Servicios. Cada cambio también queda en su diario.'
+      : (NET.topo === 'mcast' ? '' : 'En una red entre iguales no hay un servicio central que detener.');
+    updateChips();
+  }
+  function updateChips() {
+    $$('.chip').forEach(ch => {
+      const s = S[ch.dataset.svc];
+      if (!s) return;
+      ch.dataset.state = s.state;
+      $('[data-cp]', ch).textContent = STATE_ES[s.state];
+      const b = $('[data-chip]', ch);
+      b.textContent = (s.state === 'active' || s.state === 'starting') ? 'Detener' : 'Iniciar';
+      b.disabled = s.state === 'stopping';
+    });
+  }
+  $('#chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (b) action(b.dataset.chip, 'toggle'); });
+  function rebuildNet() { buildTopo(); buildNetSvg(); buildChips(); renderNet(); renderNetPanels(); }
+  function netReset() {
+    $('#net-tool').textContent = OSC.netTool;
+    syncControls();
+    rebuildNet();
+    ptRender('');
+    ddBuildChips();
+    ddRender();
+    mcBuildChips();
+  }
+  function applyParams() { NET.nodes.forEach(n => { if (n.main) { n.workers = NET.workers; n.procMs = NET.ms; } }); }
+
+  $('#sel-role').addEventListener('change', e => { NET.role = e.target.value; rebuildNet(); drawSeq(); });
+  $('#rg-clients').addEventListener('input', e => { NET.clients = +e.target.value; NET.perTopo[NET.topo] = NET.clients; $('#o-clients').textContent = NET.clients; rebuildNet(); });
+  $('#rg-rate').addEventListener('input', e => { NET.rate = parseFloat(e.target.value); $('#o-rate').textContent = fmt1(NET.rate); NET.nodes.forEach(n => { n.next = null; }); });
+  $('#rg-workers').addEventListener('input', e => { NET.workers = +e.target.value; $('#o-workers').textContent = NET.workers; applyParams(); });
+  $('#rg-ms').addEventListener('input', e => { NET.ms = +e.target.value; $('#o-ms').textContent = NET.ms + ' ms'; applyParams(); });
+  $('#sel-mcmode').addEventListener('change', e => { NET.mcMode = e.target.value; rebuildNet(); });
+  $('#btn-burst').addEventListener('click', () => { if (NET.mc) { mcInit(); return; } NET.nodes.forEach(n => { if (n.sender) spawn(n); }); });
+  $('#btn-pause').addEventListener('click', e => { NET.paused = !NET.paused; e.target.textContent = NET.paused ? 'Reanudar' : 'Pausar'; });
+  $('#btn-reset').addEventListener('click', () => { resetStats(); NET.conns = NET.conns.filter(c => c.state === 'estab'); renderNetPanels(); });
+
+  /* --- secuencia de una conexión --- */
+  let seqIdx = -1, seqTimer = null;
+  function seqSteps() {
+    const N = NET, role = ['one', 'many', 'lb'].includes(N.topo) ? N.role : 'web';
+    const port = OSC.ports[role];
+    const L = { web: ['GET / HTTP/1.1', '200 OK + página'], ssh: ['Versión SSH-2.0', 'Versión + claves'], db: ['Consulta SQL', 'Filas del resultado'], app: ['GET /api/datos', '200 OK + JSON'] }[role];
+    return {
+      port, steps: [
+        { d: 1, l: 'SYN', n: 'El cliente pide abrir una conexión al puerto ' + port + '.' },
+        { d: -1, l: 'SYN-ACK', n: 'El servidor acepta y abre también su sentido de la conexión.' },
+        { d: 1, l: 'ACK', n: 'El cliente confirma. La conexión queda establecida y aparece como ' + OSC.tcp.estab + ' en la tabla.' },
+        { d: 1, l: L[0], n: 'El cliente envía su petición por la conexión abierta.' },
+        { d: -1, l: L[1], n: 'El servidor procesa la petición y devuelve la respuesta.' },
+        { d: 1, l: 'FIN', n: 'El cliente cierra su lado. El cierre es ordenado, en dos sentidos.' },
+        { d: -1, l: 'FIN-ACK', n: 'El servidor cierra el suyo. El cliente deja la conexión en ' + OSC.tcp.tw + ' unos segundos.' }
+      ]
+    };
+  }
+  function drawSeq() {
+    const { port, steps } = seqSteps();
+    const W = 420, cx = 80, sx = 340, y0 = 74, gap = 40, H = y0 + steps.length * gap + 4;
+    let h = '<line class="life" x1="' + cx + '" y1="44" x2="' + cx + '" y2="' + (H - 6) + '"/><line class="life" x1="' + sx + '" y1="44" x2="' + sx + '" y2="' + (H - 6) + '"/>';
+    h += '<g class="hd"><rect x="' + (cx - 56) + '" y="6" width="112" height="38" rx="8"/><text x="' + cx + '" y="22">Cliente</text><text x="' + cx + '" y="37" style="font-size:10.5px;fill:var(--muted)">192.168.1.20</text>' +
+      '<rect x="' + (sx - 56) + '" y="6" width="112" height="38" rx="8"/><text x="' + sx + '" y="22">Servidor</text><text x="' + sx + '" y="37" style="font-size:10.5px;fill:var(--muted)">192.168.1.10:' + port + '</text></g>';
+    steps.forEach((s, i) => {
+      const y = y0 + i * gap;
+      const a = s.d === 1 ? cx + 6 : sx - 6, b = s.d === 1 ? sx - 6 : cx + 6;
+      const tip = b, back = b - s.d * 9;
+      let cls = 'stp';
+      if (seqIdx >= 0 && seqIdx < steps.length) cls += i === seqIdx ? ' on' : (i > seqIdx ? ' pend' : '');
+      h += '<g class="' + cls + '"><line x1="' + a + '" y1="' + y + '" x2="' + back + '" y2="' + y + '"/><polygon points="' + tip + ',' + y + ' ' + back + ',' + (y - 4.5) + ' ' + back + ',' + (y + 4.5) + '"/>' +
+        '<text x="' + ((cx + sx) / 2) + '" y="' + (y - 7) + '">' + esc(s.l) + '</text></g>';
+    });
+    const sv = $('#seqsvg');
+    sv.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    sv.innerHTML = h;
+    $('#seq-note').textContent = (seqIdx >= 0 && seqIdx < steps.length) ? steps[seqIdx].n : 'Antes de enviar nada, cliente y servidor abren una conexión. Pulsa Reproducir o avanza paso a paso.';
+  }
+  function seqNext() {
+    const n = seqSteps().steps.length;
+    seqIdx = seqIdx + 1 >= n ? -1 : seqIdx + 1;
+    drawSeq();
+    return seqIdx;
+  }
+  $('#seq-next').addEventListener('click', () => { clearInterval(seqTimer); seqNext(); });
+  $('#seq-play').addEventListener('click', () => {
+    clearInterval(seqTimer);
+    seqIdx = -1; seqNext();
+    seqTimer = setInterval(() => { if (seqNext() === -1) clearInterval(seqTimer); }, 1300);
+  });
+
+  /* --- DHCP y DNS --- */
+  const DD = { idx: -1, timer: null, hasIP: false, byIP: false };
+  function ddPlan() {
+    const R = OSC.roles, P = OSC.ports, tcp = OSC.tcp;
+    const dhcpUp = S[R.dhcp].state === 'active', dnsUp = S[R.dns].state === 'active';
+    const web = S[R.web], webUp = web.state === 'active';
+    const st = [];
+    if (!DD.hasIP) {
+      st.push({ k: 'disc', a: 0, b: 1, l: 'DHCPDISCOVER', p: 'UDP 68 → ' + P.dhcp + ' · difusión', n: 'El cliente acaba de conectarse a la red y no tiene dirección IP. Pregunta por difusión (broadcast): ¿hay algún servidor DHCP?' });
+      st.push({ k: 'offer', a: 1, b: 0, l: 'DHCPOFFER', p: 'UDP ' + P.dhcp + ' → 68', n: 'El servidor DHCP ofrece una dirección libre de su rango (192.168.1.50), con máscara, puerta de enlace, servidor DNS y tiempo de concesión.', ok: dhcpUp, fl: 'sin respuesta',
+        fn: 'Nadie responde al DISCOVER. El cliente reintenta varias veces y se queda sin dirección. ' + (os === 'windows' ? 'Windows se asigna una 169.254.x.x (APIPA), que no sirve para salir de la red.' : 'En Linux se queda sin IPv4 o con una de enlace local (169.254.x.x).') + ' Sin IP no puede seguir. Esto solo afecta a clientes nuevos: los que ya tienen concesión siguen funcionando hasta que caduque.' });
+      st.push({ k: 'req', a: 0, b: 1, l: 'DHCPREQUEST', p: 'UDP 68 → ' + P.dhcp, n: 'El cliente acepta la oferta y la solicita formalmente. Todavía lo hace por difusión, por si otros servidores DHCP habían ofrecido algo.' });
+      st.push({ k: 'ack', a: 1, b: 0, l: 'DHCPACK', p: 'UDP ' + P.dhcp + ' → 68', n: 'El servidor confirma la concesión por 24 horas. El cliente configura su interfaz y ya puede hablar por la red.' });
+    }
+    if (!DD.byIP) {
+      st.push({ k: 'dnsq', a: 0, b: 2, l: '¿IP de www.miapp.local?', p: 'UDP → ' + P.dns, n: 'Para ir a un nombre, el cliente pregunta al servidor DNS que le indicó el DHCP (192.168.1.2).' });
+      st.push({ k: 'dnsa', a: 2, b: 0, l: '192.168.1.10', p: 'UDP ' + P.dns + ' →', n: 'El servidor DNS responde con la IP del servidor web. El cliente la guarda en su caché mientras dure el TTL.', ok: dnsUp, fl: 'sin respuesta',
+        fn: 'El servidor DNS no contesta. El cliente no puede traducir el nombre aunque el servidor web funcione. Marca «escribe la IP» y verás que así sí consigue conectar.' });
+    }
+    st.push({ k: 'syn', a: 0, b: 3, l: 'SYN', p: 'TCP → ' + P.web, n: 'Con la IP ya conocida, el cliente abre una conexión TCP al puerto ' + P.web + ' del servidor web.' });
+    st.push({ k: 'synack', a: 3, b: 0, l: 'SYN-ACK', p: 'TCP ' + P.web + ' →', n: 'El servidor web acepta la conexión.', ok: webUp, fl: web.state === 'starting' ? 'sin respuesta' : 'RST · rechazada',
+      fn: web.state === 'starting'
+        ? 'El servicio todavía está arrancando y no contesta. El cliente reintenta el SYN y termina con «tiempo de espera agotado».'
+        : 'Nadie escucha en el puerto ' + P.web + ': el sistema del servidor responde con RST y el cliente ve «conexión rechazada». Inicia el servicio y vuelve a reproducir.' });
+    st.push({ k: 'ack2', a: 0, b: 3, l: 'ACK + GET /', p: 'TCP → ' + P.web, n: 'El cliente confirma y envía su petición HTTP. Aquí empieza el intercambio de «Una conexión, paso a paso».' });
+    st.push({ k: 'http', a: 3, b: 0, l: '200 OK + página', p: 'TCP ' + P.web + ' →', n: 'El servidor responde con la página. Ya hay una conexión ' + tcp.estab + ' en la tabla.' });
+    return { steps: st, failAt: st.findIndex(s => s.ok === false) };
+  }
+  function ddFicha(steps, failAt, idx) {
+    const done = new Set();
+    steps.forEach((s, i) => { if (idx >= 0 && i <= idx && !(failAt >= 0 && i >= failAt)) done.add(s.k); });
+    const failedK = (idx >= 0 && failAt >= 0 && idx >= failAt) ? steps[failAt].k : null;
+    const cfg = DD.hasIP || done.has('ack');
+    let ip = 'sin asignar', ipShort = 'sin IP';
+    if (cfg) { ip = DD.hasIP ? '192.168.1.50/24 · concesión vigente' : '192.168.1.50/24'; ipShort = '192.168.1.50'; }
+    else if (failedK === 'offer') { ip = os === 'windows' ? '169.254.37.12 · APIPA, sin DHCP' : 'sin dirección IPv4'; ipShort = os === 'windows' ? '169.254.37.12' : 'sin IP'; }
+    let cache = '—';
+    if (DD.byIP) cache = 'no se usa: se escribe la IP';
+    else if (done.has('dnsa')) cache = 'www.miapp.local → 192.168.1.10';
+    else if (failedK === 'dnsa') cache = 'sin respuesta';
+    let conn = '—';
+    if (done.has('ack2')) conn = OSC.tcp.estab;
+    else if (failedK === 'synack') conn = S[OSC.roles.web].state === 'starting' ? 'sin respuesta' : 'rechazada (RST)';
+    return {
+      ip, ipShort, cache, conn,
+      gw: cfg ? '192.168.1.1' : '—', dns: cfg ? '192.168.1.2' : '—', lease: cfg ? (DD.hasIP ? 'quedan 23 h' : '24 h') : '—',
+      cfg, bad: { ip: failedK === 'offer', cache: failedK === 'dnsa', conn: failedK === 'synack' }
+    };
+  }
+  function ddRender() {
+    const R = OSC.roles, P = OSC.ports;
+    const { steps, failAt } = ddPlan();
+    const last = failAt >= 0 ? failAt : steps.length - 1;
+    const idx = Math.min(DD.idx, last);
+    const fi = ddFicha(steps, failAt, idx);
+    const lanes = [90, 265, 440, 615], y0 = 88, gap = 42, H = y0 + steps.length * gap;
+    const up = id => S[id].state === 'active' ? 'up' : 'down';
+    const heads = [
+      { t: 'Cliente', s: fi.ipShort, c: '' },
+      { t: 'Servidor DHCP', s: S[R.dhcp].id + ' · :' + P.dhcp, c: up(R.dhcp) },
+      { t: 'Servidor DNS', s: S[R.dns].id + ' · :' + P.dns, c: up(R.dns) },
+      { t: 'Servidor web', s: S[R.web].id + ' · :' + P.web, c: up(R.web) }
+    ];
+    let h = '';
+    lanes.forEach(x => { h += '<line class="life" x1="' + x + '" y1="50" x2="' + x + '" y2="' + (H - 4) + '"/>'; });
+    heads.forEach((d, i) => {
+      h += '<g class="hd ' + d.c + '"><rect x="' + (lanes[i] - 68) + '" y="6" width="136" height="42" rx="8"/><text x="' + lanes[i] + '" y="24">' + d.t + '</text>' +
+        '<text x="' + lanes[i] + '" y="39" style="font-size:10.5px;fill:var(--muted)">' + esc(d.s) + '</text></g>';
+    });
+    steps.forEach((s, i) => {
+      const y = y0 + i * gap, ax = lanes[s.a], bx = lanes[s.b], dir = bx > ax ? 1 : -1;
+      const x1 = ax + dir * 6, x2 = bx - dir * 6, back = x2 - dir * 9;
+      let cls = 'stp';
+      if (i === failAt) cls += ' bad' + (i === idx ? ' on' : '');
+      else if (failAt >= 0 && i > failAt) cls += ' pend';
+      else if (idx >= 0) cls += i === idx ? ' on' : (i > idx ? ' pend' : '');
+      const label = i === failAt ? s.fl : s.l;
+      h += '<g class="' + cls + '"><line x1="' + x1 + '" y1="' + y + '" x2="' + back + '" y2="' + y + '"/><polygon points="' + x2 + ',' + y + ' ' + back + ',' + (y - 4.5) + ' ' + back + ',' + (y + 4.5) + '"/>' +
+        '<text x="' + ((x1 + x2) / 2) + '" y="' + (y - 8) + '">' + esc(label) + '</text><text class="pr" x="' + ((x1 + x2) / 2) + '" y="' + (y + 15) + '">' + esc(s.p) + '</text></g>';
+    });
+    const sv = $('#ddsvg');
+    sv.setAttribute('viewBox', '0 0 700 ' + H);
+    sv.innerHTML = h;
+    const cell = (k, v, cls) => '<dt>' + k + '</dt><dd' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(v) + '</dd>';
+    $('#dd-ficha').innerHTML =
+      cell('Dirección IP', fi.ip, fi.bad.ip ? 'bad' : (fi.cfg ? 'set' : '')) + cell('Puerta de enlace', fi.gw, fi.cfg ? 'set' : '') +
+      cell('Servidor DNS', fi.dns, fi.cfg ? 'set' : '') + cell('Concesión', fi.lease, fi.cfg ? 'set' : '') +
+      cell('Caché DNS', fi.cache, fi.bad.cache ? 'bad' : (fi.cache.indexOf('→') >= 0 ? 'set' : '')) +
+      cell('Conexión TCP', fi.conn, fi.bad.conn ? 'bad' : (fi.conn === OSC.tcp.estab ? 'set' : ''));
+    let note;
+    if (idx >= 0) note = idx === failAt ? steps[idx].fn : steps[idx].n;
+    else note = 'Pulsa Reproducir para seguir al cliente desde que se conecta a la red hasta que recibe la página.' + (failAt >= 0 ? ' En rojo aparece el paso que se rompe con el estado actual de los servicios.' : '');
+    $('#dd-note').textContent = note;
+  }
+  function ddBuildChips() {
+    const R = OSC.roles, P = OSC.ports;
+    const items = [
+      { id: R.dhcp, label: 'Servidor DHCP · UDP ' + P.dhcp + ' y 68' },
+      { id: R.dns, label: 'Servidor DNS · puerto ' + P.dns },
+      { id: R.web, label: 'Servidor web · puerto ' + P.web }
+    ];
+    $('#dd-chips').innerHTML = items.map(c =>
+      '<div class="chip" data-svc="' + c.id + '"><span class="dot" aria-hidden="true"></span>' +
+      '<div class="t"><code>' + esc(S[c.id].unit) + '</code><small>' + esc(c.label) + '</small></div>' +
+      '<span class="pill" data-cp></span><button class="btn" type="button" data-chip="' + c.id + '"></button></div>').join('');
+    updateChips();
+  }
+  function ddNext() {
+    const { steps, failAt } = ddPlan();
+    const last = failAt >= 0 ? failAt : steps.length - 1;
+    DD.idx = DD.idx >= last ? -1 : DD.idx + 1;
+    ddRender();
+    return DD.idx;
+  }
+  $('#dd-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (b) action(b.dataset.chip, 'toggle'); });
+  $('#dd-hasip').addEventListener('change', e => { DD.hasIP = e.target.checked; DD.idx = -1; clearInterval(DD.timer); ddRender(); });
+  $('#dd-byip').addEventListener('change', e => { DD.byIP = e.target.checked; DD.idx = -1; clearInterval(DD.timer); ddRender(); });
+  $('#dd-next').addEventListener('click', () => { clearInterval(DD.timer); ddNext(); });
+  $('#dd-play').addEventListener('click', () => {
+    clearInterval(DD.timer);
+    DD.idx = -1; ddNext();
+    DD.timer = setInterval(() => {
+      const { steps, failAt } = ddPlan();
+      const last = failAt >= 0 ? failAt : steps.length - 1;
+      if (DD.idx >= last) { clearInterval(DD.timer); return; }
+      ddNext();
+    }, 1200 / speed);
+  });
+
+
+  /* --- Instalación por multicast --- */
+  const MC = { idx: -1, timer: null, n: 12, gb: 4 };
+  const svcUp = r => S[OSC.roles[r]].state === 'active';
+  const MC_GROUP = '239.255.50.1';
+  function fmtT(sec) {
+    sec = Math.round(sec);
+    if (sec < 60) return sec + ' s';
+    if (sec < 3600) return Math.floor(sec / 60) + ' min ' + (sec % 60) + ' s';
+    return Math.floor(sec / 3600) + ' h ' + Math.floor((sec % 3600) / 60) + ' min';
+  }
+  function mcNames() {
+    const W = os === 'windows';
+    return {
+      W,
+      boot: W ? 'wdsnbp.com → bootmgfw.efi' : 'undionly.kpxe / ipxe.efi (iPXE)',
+      mini: W ? 'WinPE (boot.wim)' : 'FOS (kernel + init.xz)', miniS: W ? 'WinPE' : 'FOS',
+      imgHead: W ? 'Serv. de imágenes' : 'Servidor FOG',
+      tftp: W ? 'WDSServer' : 'tftpd-hpa', tftpLbl: W ? 'Servicios de implementación (WDS) · TFTP 69' : 'Servidor TFTP/PXE · UDP 69',
+      img: W ? 'WDS Multicast' : 'FOGMulticastManager', imgLbl: W ? 'Servidor de imágenes · multicast' : 'Servidor FOG · multicast (udpcast)'
+    };
+  }
+  function mcPlan() {
+    const R = OSC.roles, P = OSC.ports, N = mcNames();
+    const dhcpUp = S[R.dhcp].state === 'active';
+    const gb = MC.gb, n = MC.n;
+    const st = [];
+    st.push({ k: 'disc', a: 0, b: 1, l: 'DHCPDISCOVER', p: 'UDP 68 → ' + P.dhcp + ' · difusión', n: 'El equipo no tiene sistema operativo, así que su firmware arranca por la tarjeta de red (PXE) y pregunta por difusión: ¿hay algún servidor DHCP? Indica además que busca arranque por red (opción 60, «PXEClient»).' });
+    st.push({ k: 'offer', a: 1, b: 0, l: 'DHCPOFFER', p: 'UDP ' + P.dhcp + ' → 68', n: 'El servidor DHCP ofrece una IP (192.168.1.60) y dos datos de arranque: la dirección del servidor TFTP (opción 66, «next-server») y el nombre del cargador (opción 67: ' + N.boot + ').', ok: dhcpUp, fl: 'sin respuesta',
+      fn: 'Nadie responde al DISCOVER. El equipo repite la petición y termina con «PXE-E51: No DHCP or proxyDHCP offers»: sin DHCP no hay IP ni se sabe de dónde arrancar. Inicia el servidor DHCP y vuelve a reproducir.' });
+    st.push({ k: 'req', a: 0, b: 1, l: 'DHCPREQUEST', p: 'UDP 68 → ' + P.dhcp, n: 'El equipo acepta la oferta y la solicita formalmente.' });
+    st.push({ k: 'ack', a: 1, b: 0, l: 'DHCPACK', p: 'UDP ' + P.dhcp + ' → 68', n: 'El servidor confirma. El equipo ya tiene IP y sabe a qué servidor TFTP pedir su cargador.' });
+    st.push({ k: 'rrq', a: 0, b: 2, l: 'TFTP RRQ ' + (N.W ? 'wdsnbp.com' : 'ipxe.efi'), p: 'UDP → 69', n: 'El equipo pide el cargador al servidor TFTP' + (N.W ? '' : ' (en FOG, el cargador es iPXE y muestra el menú de arranque del servidor)') + '. Se usa TFTP porque es tan sencillo que cabe dentro del firmware de la tarjeta de red.' });
+    st.push({ k: 'tftpd', a: 2, b: 0, l: 'cargador + ' + N.miniS, p: 'UDP 69 → · bloques de 512 B', n: 'El servidor TFTP envía el cargador y un mini sistema (' + N.mini + ') que se carga en la memoria RAM del equipo' + (N.W ? '' : '. FOS es el pequeño Linux de FOG que se encarga de copiar imágenes') + '. Todavía no hay nada instalado en su disco.', ok: svcUp('tftp'), fl: 'sin respuesta',
+      fn: 'El servidor TFTP no contesta. El equipo muestra «PXE-E32: TFTP open timeout» y no puede descargar el mini sistema: el instalador nunca llega a arrancar.' });
+    st.push({ k: 'imgreq', a: 0, b: 3, l: N.W ? 'Solicitud de imagen' : 'FOS pide su tarea', p: N.W ? 'unicast → servidor de imágenes' : 'HTTP → servidor FOG', n: N.W ? 'El instalador ya corre en memoria y pide al servidor de imágenes la imagen del sistema operativo.' : 'FOS ya corre en memoria y consulta por HTTP al servidor FOG qué tarea tiene este equipo. El técnico le ha programado «desplegar imagen» en modo multicast.' });
+    st.push({ k: 'sess', a: 3, b: 0, l: 'Sesión ' + MC_GROUP, p: 'grupo multicast · UDP 9000', n: (N.W ? 'El servidor responde' : 'El servicio FOGMulticastManager crea la sesión y responde') + ' con los datos de la sesión: la dirección del grupo multicast (' + MC_GROUP + '), el puerto y el tamaño de la imagen. Espera a que se unan los equipos antes de empezar a emitir' + (N.W ? '' : ' (lanza udp-sender de udpcast)') + '.', ok: svcUp('img'), fl: 'sin respuesta',
+      fn: N.W ? 'El servidor de imágenes no contesta. El instalador está en memoria pero no tiene imagen que escribir: se queda esperando o falla con «no se encuentra el servidor de implementación».' : 'FOGMulticastManager no está activo: no se crea la sesión multicast y FOS se queda esperando el inicio de la tarea sin recibir la imagen. Inicia el servicio y vuelve a reproducir.' });
+    st.push({ k: 'join', a: 0, b: 3, l: 'IGMP Join ' + MC_GROUP, p: 'IGMP → switch · «quiero este grupo»', n: 'El equipo avisa a la red (IGMP) de que quiere recibir ese grupo. Un switch con «IGMP snooping» solo reenvía el grupo a los puertos que se han unido; sin él lo inundaría por toda la red.' });
+    st.push({ k: 'data', a: 3, b: 0, l: 'imagen ' + gb + ' GB', p: 'UDP ' + MC_GROUP + ' · una sola emisión', n: 'El servidor emite la imagen (' + gb + ' GB) una sola vez y los ' + n + ' equipos la reciben a la vez. Con unicast tendría que enviarla ' + n + ' veces: ' + (n * gb) + ' GB por el cable del servidor en lugar de ' + gb + ' GB.' });
+    st.push({ k: 'done', a: 0, b: 3, l: 'imagen completa', p: 'confirmación de cada equipo', n: 'Cada equipo comprueba la imagen, la escribe en su disco y reinicia. A partir de aquí arranca desde su disco y ya no usa la red para instalarse.' });
+    return { steps: st, failAt: st.findIndex(s => s.ok === false) };
+  }
+  function mcFicha(steps, failAt, idx) {
+    const done = new Set();
+    steps.forEach((s, i) => { if (idx >= 0 && i <= idx && !(failAt >= 0 && i >= failAt)) done.add(s.k); });
+    const fk = (idx >= 0 && failAt >= 0 && idx >= failAt) ? steps[failAt].k : null;
+    const N = mcNames();
+    const f = {
+      ip: done.has('ack') ? '192.168.1.60/24' : (fk === 'offer' ? 'sin IP · PXE-E51' : 'sin asignar'),
+      boot: done.has('ack') ? N.boot : '—',
+      mini: done.has('tftpd') ? N.mini + ' en RAM' : (fk === 'tftpd' ? 'PXE-E32 · TFTP timeout' : '—'),
+      sess: done.has('sess') ? MC_GROUP + ':9000' : (fk === 'sess' ? 'sin respuesta' : '—'),
+      img: done.has('data') ? MC.n + ' equipos · ' + MC.gb + ' GB' : '—',
+      bad: { ip: fk === 'offer', mini: fk === 'tftpd', sess: fk === 'sess' }
+    };
+    const mbps = 110, secOne = MC.gb * 1024 / mbps;
+    f.uni = MC.n * MC.gb + ' GB · ' + fmtT(MC.n * secOne);
+    f.multi = MC.gb + ' GB · ' + fmtT(secOne);
+    return f;
+  }
+  function mcRender() {
+    if (!$('#mcsvg')) return;
+    const R = OSC.roles, P = OSC.ports, N = mcNames();
+    const { steps, failAt } = mcPlan();
+    const last = failAt >= 0 ? failAt : steps.length - 1;
+    const idx = Math.min(MC.idx, last);
+    const fi = mcFicha(steps, failAt, idx);
+    const lanes = [90, 265, 440, 615], y0 = 88, gap = 42, H = y0 + steps.length * gap;
+    const dhcpUp = S[R.dhcp].state === 'active';
+    const heads = [
+      { t: 'Equipo nuevo', s: done0(fi), c: '' },
+      { t: 'Servidor DHCP', s: S[R.dhcp].id + ' · :' + P.dhcp, c: dhcpUp ? 'up' : 'down' },
+      { t: 'Servidor TFTP', s: S[R.tftp].unit + ' · :69', c: svcUp('tftp') ? 'up' : 'down' },
+      { t: N.imgHead, s: S[R.img].unit, c: svcUp('img') ? 'up' : 'down' }
+    ];
+    function done0(f) { return f.ip.indexOf('192') === 0 ? '192.168.1.60' : 'sin IP'; }
+    let h = '';
+    lanes.forEach(x => { h += '<line class="life" x1="' + x + '" y1="50" x2="' + x + '" y2="' + (H - 4) + '"/>'; });
+    heads.forEach((d, i) => {
+      h += '<g class="hd ' + d.c + '"><rect x="' + (lanes[i] - 68) + '" y="6" width="136" height="42" rx="8"/><text x="' + lanes[i] + '" y="24">' + d.t + '</text>' +
+        '<text x="' + lanes[i] + '" y="39" style="font-size:10.5px;fill:var(--muted)">' + esc(d.s) + '</text></g>';
+    });
+    steps.forEach((s, i) => {
+      const y = y0 + i * gap, ax = lanes[s.a], bx = lanes[s.b], dir = bx > ax ? 1 : -1;
+      const x1 = ax + dir * 6, x2 = bx - dir * 6, back = x2 - dir * 9;
+      let cls = 'stp';
+      if (i === failAt) cls += ' bad' + (i === idx ? ' on' : '');
+      else if (failAt >= 0 && i > failAt) cls += ' pend';
+      else if (idx >= 0) cls += i === idx ? ' on' : (i > idx ? ' pend' : '');
+      const label = i === failAt ? s.fl : s.l;
+      h += '<g class="' + cls + '"><line x1="' + x1 + '" y1="' + y + '" x2="' + back + '" y2="' + y + '"/><polygon points="' + x2 + ',' + y + ' ' + back + ',' + (y - 4.5) + ' ' + back + ',' + (y + 4.5) + '"/>' +
+        '<text x="' + ((x1 + x2) / 2) + '" y="' + (y - 8) + '">' + esc(label) + '</text><text class="pr" x="' + ((x1 + x2) / 2) + '" y="' + (y + 15) + '">' + esc(s.p) + '</text></g>';
+    });
+    const sv = $('#mcsvg');
+    sv.setAttribute('viewBox', '0 0 700 ' + H);
+    sv.innerHTML = h;
+    const cell = (k, v, cls) => '<dt>' + k + '</dt><dd' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(v) + '</dd>';
+    $('#mc-ficha').innerHTML =
+      cell('Dirección IP', fi.ip, fi.bad.ip ? 'bad' : (fi.ip.indexOf('192') === 0 ? 'set' : '')) +
+      cell('Cargador PXE', fi.boot, fi.boot !== '—' ? 'set' : '') +
+      cell('Mini sistema', fi.mini, fi.bad.mini ? 'bad' : (fi.mini !== '—' ? 'set' : '')) +
+      cell('Sesión multicast', fi.sess, fi.bad.sess ? 'bad' : (fi.sess.indexOf(MC_GROUP) === 0 ? 'set' : '')) +
+      cell('Imagen recibida', fi.img, fi.img !== '—' ? 'set' : '') +
+      cell('Con unicast', fi.uni, '') + cell('Con multicast', fi.multi, 'set');
+    let note;
+    if (idx >= 0) note = idx === failAt ? steps[idx].fn : steps[idx].n;
+    else note = 'Pulsa Reproducir para seguir a un equipo nuevo desde que arranca por la red hasta que recibe la imagen.' + (failAt >= 0 ? ' En rojo aparece el paso que se rompe con el estado actual de los servidores.' : '') + ' Cambia el número de equipos y el tamaño para comparar el tráfico con unicast y con multicast.';
+    $('#mc-note').textContent = note;
+  }
+  function mcBuildChips() {
+    const R = OSC.roles, P = OSC.ports, N = mcNames();
+    const chip = (attr, unit, label, id) => '<div class="chip" ' + attr + '><span class="dot" aria-hidden="true"></span>' +
+      '<div class="t"><code>' + esc(unit) + '</code><small>' + esc(label) + '</small></div>' +
+      '<span class="pill" data-cp></span><button class="btn" type="button" data-chip="' + id + '"></button></div>';
+    $('#mc-chips').innerHTML =
+      chip('data-svc="' + R.dhcp + '"', S[R.dhcp].unit, 'Servidor DHCP · UDP ' + P.dhcp + ' y 68', R.dhcp) +
+      (R.tftp === R.img
+        ? chip('data-svc="' + R.img + '"', S[R.img].unit, 'Arranque por red (TFTP 69) y servidor de imágenes · multicast', R.img)
+        : chip('data-svc="' + R.tftp + '"', S[R.tftp].unit, N.tftpLbl, R.tftp) + chip('data-svc="' + R.img + '"', S[R.img].unit, N.imgLbl, R.img));
+    updateChips(); mcRender();
+  }
+  function mcReset() { MC.idx = -1; clearInterval(MC.timer); mcRender(); }
+  function mcNext() {
+    const { steps, failAt } = mcPlan();
+    const last = failAt >= 0 ? failAt : steps.length - 1;
+    MC.idx = MC.idx >= last ? -1 : MC.idx + 1;
+    mcRender();
+    return MC.idx;
+  }
+  $('#mc-chips').addEventListener('click', e => {
+    const b = e.target.closest('[data-chip]'); if (!b) return;
+    const k = b.dataset.chip;
+    action(k, 'toggle');
+  });
+  $('#mc-n').addEventListener('input', e => { MC.n = +e.target.value; $('#mc-n-o').textContent = MC.n; mcRender(); });
+  $('#mc-gb').addEventListener('change', e => { MC.gb = +e.target.value; mcRender(); });
+  $('#mc-next').addEventListener('click', () => { clearInterval(MC.timer); mcNext(); });
+  $('#mc-play').addEventListener('click', () => {
+    clearInterval(MC.timer);
+    MC.idx = -1; mcNext();
+    MC.timer = setInterval(() => {
+      const { steps, failAt } = mcPlan();
+      const last = failAt >= 0 ? failAt : steps.length - 1;
+      if (MC.idx >= last) { clearInterval(MC.timer); return; }
+      mcNext();
+    }, 1200 / speed);
+  });
+
+  /* --- puertos y sockets --- */
+  const PT = { conns: [], n: 0, max: 6 };
+  function ptNew() {
+    PT.n++;
+    let port;
+    do { port = 49152 + Math.floor(Math.random() * 16000); } while (PT.conns.some(c => c.port === port));
+    const c = { n: PT.n, ip: '192.168.1.' + (19 + PT.n), port };
+    PT.conns.push(c);
+    return c;
+  }
+  ptNew(); ptNew();
+  function ptRender(msg, newId) {
+    const port = OSC.ports.web, svc = S[OSC.roles.web].id, sip = '192.168.1.10';
+    $('#pt-srvhead').textContent = 'Servidor · ' + svc;
+    $('#pt-listen').innerHTML = '<div class="pt-row"><div class="pt-box none"><b>Los clientes no escuchan</b><span>Cada uno usa un puerto temporal</span></div><div class="pt-arrow"></div>' +
+      '<div class="pt-box ls"><b>Socket de escucha · ' + OSC.tcp.listen + '</b><span>0.0.0.0:<span class="fixed">' + port + '</span></span><span>Sigue libre para nuevas conexiones</span></div></div>';
+    $('#pt-rows').innerHTML = PT.conns.map(c =>
+      '<div class="pt-row' + (c.n === newId ? ' new' : '') + '"><div class="pt-box"><b>Cliente ' + c.n + '</b><span>' + c.ip + '</span><span class="eph">puerto temporal ' + c.port + '</span></div>' +
+      '<div class="pt-arrow" aria-hidden="true">→</div>' +
+      '<div class="pt-box"><b>Socket de la conexión ' + c.n + '</b><span>' + sip + '</span><span class="fixed">puerto local ' + port + '</span></div></div>').join('');
+    $('#pt-table').innerHTML = PT.conns.length
+      ? PT.conns.map(c => '<tr><th scope="row">' + c.n + '</th><td>' + c.ip + '</td><td class="eph" style="color:var(--warn);font-weight:500">' + c.port + '</td><td>' + sip + '</td><td style="color:var(--ok);font-weight:500">' + port + '</td></tr>').join('')
+      : '<tr><td colspan="5">Sin conexiones abiertas. El socket de escucha sigue en el puerto ' + port + '.</td></tr>';
+    $('#pt-note').textContent = msg || 'Pulsa «Conectar un cliente» y fíjate en qué puerto usa cada lado.';
+    $('#pt-add').disabled = PT.conns.length >= PT.max;
+    $('#pt-del').disabled = !PT.conns.length;
+  }
+  $('#pt-add').addEventListener('click', () => {
+    if (PT.conns.length >= PT.max) return;
+    const c = ptNew(), port = OSC.ports.web;
+    ptRender('El cliente ' + c.n + ' elige el puerto temporal ' + c.port + ' y envía un SYN al puerto ' + port + '. El servidor hace accept(): crea un socket nuevo para esa conexión, también en el puerto ' + port + '. El socket de escucha sigue en el ' + port + ' para el siguiente cliente.', c.n);
+  });
+  $('#pt-del').addEventListener('click', () => {
+    const c = PT.conns.pop();
+    if (c) ptRender('Se cierra la conexión del cliente ' + c.n + '. Solo desaparece su socket y el puerto ' + c.port + ' queda libre en el cliente. El servidor sigue escuchando en el ' + OSC.ports.web + '.');
+  });
+
+  /* ================= Bucles ================= */
+  let lastFrame = performance.now();
+  function frame(now) {
+    const dt = Math.min(50, now - lastFrame);
+    lastFrame = now;
+    if (curTab === 'red' && !NET.paused) { stepNet(dt * speed); renderNet(); }
+    requestAnimationFrame(frame);
+  }
+  setInterval(() => { if (curTab === 'red') renderNetPanels(); }, 250);
+
+  setInterval(() => {
+    SERVICES.forEach(d => {
+      const s = S[d.id];
+      if (!s) return;
+      if (s.state === 'active') {
+        s.cpu = Math.max(0.1, d.cpu * (0.5 + Math.random() * 1.1));
+        s.mem = d.mem * (0.97 + Math.random() * 0.06) + ((Date.now() - s.since) / 60000) * 0.1;
+      } else {
+        s.cpu = 0;
+        if (s.state !== 'stopping') s.mem = 0;
+      }
+      s.hist.push(s.cpu);
+      if (s.hist.length > 40) s.hist.shift();
+    });
+    updateDetail();
+  }, 1000);
+
+  /* ================= Arranque de la página ================= */
+  buildTopos();
+  loadOS('linux');
+  netReady = true;
+  netReset();
+  update();
+  showTab(location.hash.slice(1));
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

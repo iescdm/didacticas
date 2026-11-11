@@ -1,0 +1,26 @@
+# *************************************
+# Programa de ejemplo con bucles y variables
+# *************************************
+
+# Definición de enteros
+entero i := 3
+entero b
+
+# Inicio del programa
+imprimir "Inicio Programa"
+
+# Bucle mientras
+mientras i > 1
+    imprimir "Iteración Mientras", i
+
+    # Bucle para
+    para b := 1 hasta 9 paso 2
+        imprimir "Iteración Bucle", b
+    finpara
+
+    imprimir "Fin Bucle"
+    i := i - 1
+fin
+
+# Fin del programa
+imprimir "Fin Programa"

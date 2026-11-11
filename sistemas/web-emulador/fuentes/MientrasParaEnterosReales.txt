@@ -1,0 +1,39 @@
+# *************************************
+# Programa de ejemplo: enteros y reales
+# *************************************
+
+# Definición de variables enteras
+entero i := 3
+entero j
+
+# Definición de variables reales
+real r1 := 1.5
+real r2
+real rtotal
+
+# Inicializar r2
+r2 := 2.7
+
+# Inicio del programa
+imprimir "Inicio Programa"
+
+# Bucle mientras
+mientras i > 0
+    imprimir "Iteración Mientras", i
+
+    # Bucle para
+    para j := 1 hasta 4 paso 1
+        imprimir "Iteración Bucle", j
+
+        # Sumar entero y real
+        rtemp := r1 + r2 
+        rtotal := rtemp + j
+        imprimir "Suma total", rtotal
+    finpara
+
+    # Decrementar contador
+    i := i - 1
+fin
+
+# Fin del programa
+imprimir "Fin Programa"

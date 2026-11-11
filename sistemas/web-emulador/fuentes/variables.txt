@@ -1,0 +1,4 @@
+booleano b1 := verdadero
+booleano b2
+b2 := 4 < 6
+imprimir "Booleanos" b1,b2

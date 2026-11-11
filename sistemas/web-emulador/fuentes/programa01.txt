@@ -1,0 +1,6 @@
+real a := 20.0
+real b := 3.1
+real c := 0.0
+c := a + b
+imprimir "Real",c
+

@@ -1,0 +1,15 @@
+# Programa que recorre las letras de la A a la E e imprime cada una
+
+entero i
+caracter letra
+
+i := 0
+letra := 'A'
+
+mientras i <= 5
+    imprimir "valor ", letra
+    letra := letra + 1
+    i := i + 1
+fin
+
+

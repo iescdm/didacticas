@@ -1,0 +1,5 @@
+entero n := 5
+real r := 2.3
+real total 
+total := n + r
+imprimir "Suma entero + real:" total

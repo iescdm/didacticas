@@ -1,0 +1,14 @@
+entero i := 0
+entero t := 5
+real v := 1.0
+real c := 1.0
+real r
+imprimir "Tabla del ",t
+mientras i < 11
+    r := c * t
+    imprimir i,"*",t,"=",r
+    c := c + v
+    i := i + 1
+fin
+
+

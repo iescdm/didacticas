@@ -1,0 +1,14 @@
+real a := 20.0
+real b := 3.1
+real c
+real d
+real e
+real f
+c := a + b
+d := a - b
+e := a * b
+f := a / b
+imprimir "Suma ",c
+imprimir "Resto ",d
+imprimir "Multiplicación ",e
+imprimir "División ",f

@@ -1,0 +1,9 @@
+# Suma, resta, multiplicación y división
+entero a := 5
+entero b := 3
+suma := a + b
+resta := a - b
+multi := a * b
+divi := a / b
+
+imprimir "Resultados Aritméticos" suma, resta, multi, divi

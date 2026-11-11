@@ -1,0 +1,10 @@
+entero i := 5
+entero uno := 1
+booleano b
+
+b i <= 4
+si b entonces
+    imprimir "Si"
+sino 
+    imprimir "SINO" 
+finsi

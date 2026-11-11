@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lanzador de Webs</title>
+  <style>
+/* Lanzador de Webs: lista de aplicaciones con un botón Abrir por fila. Claro y oscuro según el sistema. */
+:root {
+  --bg: #f2f5f6;
+  --surface: #ffffff;
+  --surface-2: #f7f9fa;
+  --fg: #142029;
+  --muted: #5b6b75;
+  --line: #d9e1e5;
+  --accent: #0b6e79;
+  --accent-fg: #ffffff;
+  --danger: #b42318;
+  --tile-s: 45%;
+  --tile-l: 90%;
+  --tile-fg: 26%;
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1519;
+    --surface: #151e24;
+    --surface-2: #1a252c;
+    --fg: #e6edf0;
+    --muted: #91a3ad;
+    --line: #26343c;
+    --accent: #4fc3cf;
+    --accent-fg: #06262b;
+    --danger: #ff8a7a;
+    --tile-s: 35%;
+    --tile-l: 22%;
+    --tile-fg: 80%;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.5 var(--font);
+  padding: 32px max(16px, env(safe-area-inset-left, 0px)) 72px;
+}
+.wrap { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: 13px; }
+
+.head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 24px; }
+h1 { margin: 0; font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+h2 { margin: 0; font-size: 18px; }
+.sub { margin: 6px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 0 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); font-weight: 500; text-decoration: none; color: var(--fg);
+  transition: border-color .15s, filter .15s;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn svg, .icon-btn svg { width: 16px; height: 16px; flex: none; }
+.icon-btn {
+  width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 8px; cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: var(--muted);
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--fg); }
+.icon-btn.danger:hover { color: var(--danger); }
+.icon-btn[aria-pressed="true"] { color: var(--accent); }
+.icon-btn[aria-pressed="true"] svg { fill: currentColor; }
+
+.top-right { margin-left: auto; justify-content: flex-end; }
+.menu-wrap { position: relative; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 15; min-width: 220px; padding: 6px; display: grid; gap: 2px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.14);
+}
+.menu-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--fg); text-align: left; cursor: pointer; }
+.menu-item:hover, .menu-item:focus-visible { background: var(--surface-2); }
+.menu-item svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
+.btn[aria-expanded="true"] { border-color: var(--accent); }
+.tools { display: flex; flex-wrap: wrap; gap: 10px; }
+.search { flex: 1 1 240px; min-width: 0; position: relative; }
+.search svg { position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.search input[type="search"] { width: 100%; padding-left: 38px; }
+input[type="search"], input[type="text"], input[type="url"], select {
+  min-height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; min-width: 0;
+}
+
+/* Panel para añadir */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.opt { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.opt p { margin: 0; color: var(--muted); font-size: 14px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.field input { width: 100%; }
+.err { color: var(--danger); font-size: 13px; min-height: 18px; margin: 0; }
+
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; background: var(--surface-2); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; }
+.banner span { flex: 1 1 260px; min-width: 0; }
+#missing { display: flex; flex-direction: column; gap: 10px; }
+#missing:empty { display: none; }
+
+.list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; transition: border-color .15s;
+}
+.card:hover { border-color: var(--accent); }
+.card.removed .tile { opacity: .55; }
+.card.edit { align-items: flex-start; }
+.edit .fields { flex: 1 1 300px; min-width: 0; display: grid; gap: 10px; }
+.edit label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.edit input { width: 100%; font-weight: 400; color: var(--fg); }
+.edit .hint { margin: 0; font-size: 12.5px; color: var(--muted); font-weight: 400; }
+.edit .row { align-self: flex-end; }
+.linkbtn { background: none; border: 0; padding: 0; margin-top: 4px; color: var(--accent); font-size: 12.5px; cursor: pointer; text-decoration: underline; }
+.choices { display: grid; gap: 2px; max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px; background: var(--surface-2); }
+.choices .choice { display: flex; align-items: flex-start; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 400; color: var(--fg); overflow-wrap: anywhere; }
+.choices .choice:hover { background: var(--surface); }
+.choices .choice input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.choices .choice small { color: var(--muted); font-size: 12.5px; }
+.tile {
+  flex: none; width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; font-weight: 700;
+  background: hsl(var(--h) var(--tile-s) var(--tile-l)); color: hsl(var(--h) 55% var(--tile-fg));
+}
+.body { flex: 1 1 220px; min-width: 0; }
+.body h3 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.body p { margin: 1px 0 0; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.actions { flex: none; display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.actions .btn { min-width: 104px; margin-left: 6px; }
+
+.state { border: 1px dashed var(--line); border-radius: 12px; padding: 40px 20px; text-align: center; color: var(--muted); background: var(--surface-2); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.state strong { display: block; color: var(--fg); font-size: 18px; }
+.state p { margin: 0; max-width: 46ch; }
+.state .row { justify-content: center; }
+.note { color: var(--muted); font-size: 13px; margin: 0; max-width: none; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 14px; max-width: calc(100% - 32px); z-index: 20;
+  display: flex; align-items: center; gap: 14px;
+}
+.toast-btn { background: transparent; border: 0; padding: 0; font-weight: 700; text-decoration: underline; cursor: pointer; color: inherit; }
+
+@media (max-width: 560px) {
+  .top-right { margin-left: 0; width: 100%; justify-content: flex-start; }
+  .menu { right: auto; left: 0; }
+  h1 { font-size: 26px; }
+  .actions { width: 100%; margin-left: 0; }
+  .actions .btn { flex: 1; margin-left: 0; order: -1; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Modo de trabajo y pestañas de grupos */
+.tabs { display: flex; gap: 4px; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.tabs.searching { opacity: .55; }
+.tab { flex: none; display: inline-flex; align-items: baseline; gap: 6px; padding: 9px 14px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: transparent; color: var(--muted); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.edit input[list] { width: 100%; }
+
+/* Tarjetas de aplicación: el nombre es el acceso directo */
+.card.edit { grid-column: 1 / -1; }
+.app-card { position: relative; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 14px; padding: 16px; min-height: 148px; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.app-card:not(.removed):hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+.app-card .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.app-card .tile { width: 52px; height: 52px; border-radius: 14px; }
+.app-card .tile svg { width: 26px; height: 26px; }
+.app-card .actions { position: relative; z-index: 2; margin-left: 0; gap: 0; width: auto; flex: none; }
+.app-card .icon-btn { width: 32px; height: 32px; }
+.app-card .body { flex: 1 1 auto; }
+.app-card .body h3 { font-size: 16px; }
+.app-card .body p { margin-top: 3px; }
+.launch { display: inline; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; }
+.launch::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+.launch:focus-visible { outline: none; }
+.app-card:has(.launch:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app-card:not(.removed):hover .launch { color: var(--accent); }
+.app-card .linkbtn { position: relative; z-index: 2; display: block; }
+.app-card .restore { align-self: flex-start; }
+.tile svg { width: 22px; height: 22px; }
+
+/* Presentaciones: lista, iconos pequeños e iconos grandes */
+.list.v-list { grid-template-columns: 1fr; gap: 8px; }
+.v-list .app-card { flex-direction: row; align-items: center; min-height: 0; padding: 10px 14px; gap: 14px; }
+.v-list .app-card:not(.removed):hover { transform: none; box-shadow: none; }
+.v-list .app-card .top, .v-small .app-card .top, .v-large .app-card .top { display: contents; }
+.v-list .tile { order: 1; width: 40px; height: 40px; border-radius: 10px; }
+.v-list .tile svg { width: 20px; height: 20px; }
+.v-list .body { order: 2; flex: 1 1 auto; min-width: 0; }
+.v-list .app-card .actions { order: 3; margin-left: auto; }
+
+.list.v-small { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
+.list.v-large { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; }
+.v-small .app-card, .v-large .app-card { align-items: center; text-align: center; min-height: 0; }
+.v-small .app-card { padding: 16px 8px 12px; gap: 8px; }
+.v-large .app-card { padding: 24px 12px 18px; gap: 12px; }
+.v-small .tile { order: 1; width: 40px; height: 40px; border-radius: 11px; }
+.v-small .tile svg { width: 22px; height: 22px; }
+.v-large .tile { order: 1; width: 76px; height: 76px; border-radius: 20px; }
+.v-large .tile svg { width: 38px; height: 38px; }
+.v-small .body, .v-large .body { order: 2; flex: none; width: 100%; }
+.v-small .body h3 { font-size: 13px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.v-large .body h3 { font-size: 15px; }
+.v-small .body p, .v-small .linkbtn, .v-large .body p, .v-large .linkbtn { display: none; }
+.v-small .app-card .actions, .v-large .app-card .actions { position: absolute; top: 4px; right: 4px; }
+.v-small .app-card .icon-btn, .v-large .app-card .icon-btn { width: 28px; height: 28px; }
+.v-small .actions .icon-btn:not([aria-pressed="true"]), .v-large .actions .icon-btn:not([aria-pressed="true"]) { opacity: 0; transition: opacity .15s; }
+.v-small .app-card:hover .actions .icon-btn, .v-large .app-card:hover .actions .icon-btn,
+.v-small .app-card:focus-within .actions .icon-btn, .v-large .app-card:focus-within .actions .icon-btn { opacity: 1; }
+@media (hover: none) { .v-small .actions .icon-btn, .v-large .actions .icon-btn { opacity: 1 !important; } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <div>
+        <h1>Lanzador de Webs</h1>
+        <p class="sub" id="status">Elige la carpeta donde guardas tus webs.</p>
+      </div>
+      <div class="top-right row">
+        <select id="mode" aria-label="Modo de trabajo">
+          <option value="use">Vista normal</option>
+          <option value="config">Configuración</option>
+        </select>
+        <div class="menu-wrap" id="tools-wrap">
+          <button class="btn" id="tools-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="tools-menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L3 17.7 6.3 21l6.3-6.3a4 4 0 0 0 5.1-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6Z"/></svg><span>Herramientas</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="menu" id="tools-menu" role="menu" hidden>
+            <button class="menu-item" id="pick" type="button" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg><span>Elegir carpeta</span></button>
+            <button class="menu-item" id="add" type="button" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Añadir aplicación</span></button>
+            <button class="menu-item" id="reload" type="button" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3M4 5v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3M20 19v-4h-4"/></svg><span>Actualizar lista</span></button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel" id="add-panel" hidden aria-labelledby="add-title">
+      <h2 id="add-title">Añadir una aplicación</h2>
+      <div class="opts">
+        <div class="opt">
+          <strong>Carpeta de una aplicación</strong>
+          <p>Una carpeta con su index.html, esté donde esté en tu disco.</p>
+          <div class="row"><button class="btn" id="add-folder" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg><span>Elegir carpeta…</span></button></div>
+        </div>
+        <form class="opt" id="add-link-form" novalidate>
+          <strong>Enlace web</strong>
+          <p>Una dirección de internet, por ejemplo una página ya publicada.</p>
+          <div class="field">
+            <label for="l-title">Nombre</label>
+            <input type="text" id="l-title" maxlength="100" autocomplete="off" placeholder="Samba 4 para ASIR">
+          </div>
+          <div class="field">
+            <label for="l-url">Dirección</label>
+            <input type="url" id="l-url" maxlength="600" autocomplete="off" placeholder="https://…">
+          </div>
+          <p class="err" id="link-err" role="alert"></p>
+          <div class="row"><button class="btn primary" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Añadir enlace</span></button></div>
+        </form>
+      </div>
+      <div class="row"><button class="btn" id="add-close" type="button">Cerrar</button></div>
+    </section>
+
+    <div class="banner" id="access" hidden>
+      <span id="access-text"></span>
+      <button class="btn primary" id="access-btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M16 7l3 3"/></svg><span>Dar acceso</span></button>
+    </div>
+
+    <div id="missing"></div>
+
+    <div class="tools" id="tools" hidden>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="q" placeholder="Buscar por nombre o carpeta" aria-label="Buscar aplicaciones" autocomplete="off">
+      </div>
+      <select id="layout" aria-label="Presentación de las aplicaciones" title="Presentación">
+        <option value="cards">Tarjetas</option>
+        <option value="list">Lista</option>
+        <option value="small">Iconos pequeños</option>
+        <option value="large">Iconos grandes</option>
+      </select>
+      <select id="sort" aria-label="Ordenar por">
+        <option value="recent">Más recientes</option>
+        <option value="az">Nombre A–Z</option>
+        <option value="folder">Por carpeta</option>
+      </select>
+      <button class="btn" id="removed-toggle" type="button" hidden></button>
+    </div>
+
+    <div class="tabs" id="tabs" role="tablist" aria-label="Grupos" hidden></div>
+
+    <main id="out" aria-live="polite"></main>
+
+    <p class="note" id="note" hidden>
+      Cada subcarpeta con un <code>index.html</code> es una aplicación. Si no lo tiene, se listan sus archivos .html.
+      Con el lápiz cambias el nombre de una aplicación y le asignas un grupo; los grupos aparecen como pestañas.
+      Con «Cambiar archivo» eliges qué archivo .html de esa carpeta abre cada aplicación.
+      Quitar una aplicación solo la saca de esta lista: no borra ningún archivo.
+      Si cambias el nombre de una carpeta o de un archivo, pulsa «Actualizar lista»: se conservan las destacadas, las quitadas, los grupos y los nombres que hayas puesto.
+      Mantén esta pestaña abierta mientras usas las que abras desde aquí; si recargas una aplicación con F5, vuelve a lanzarla desde esta lista.
+    </p>
+  </div>
+
+  <input type="file" id="dir-input" webkitdirectory multiple hidden>
+  <input type="file" id="app-input" webkitdirectory multiple hidden>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script>
+/*
+ * Lanzador de Webs
+ * ----------------
+ * Eliges una carpeta y el lanzador lista las aplicaciones que hay en SUS SUBCARPETAS.
+ * Cada subcarpeta con un index.html es una aplicación; si no lo tiene, se listan sus .html.
+ * Los archivos que están directamente en la carpeta elegida no se leen.
+ *
+ * Además puedes:
+ *   - Añadir la carpeta de una aplicación que esté en cualquier otro sitio de tu disco.
+ *   - Añadir un enlace web.
+ *   - Quitar cualquier aplicación de la lista (no se borra ningún archivo) y restaurarla después.
+ *
+ * Al abrir una aplicación local, se leen sus archivos del disco en ese momento y se montan en una
+ * pestaña nueva (estilos, scripts e imágenes incluidos), así que ves siempre la última versión.
+ */
+(function () {
+  "use strict";
+
+  var $ = function (s) { return document.querySelector(s); };
+
+  var SKIP = { node_modules: 1, __pycache__: 1 };
+  var MAX_DEPTH = 4;                // profundidad máxima de subcarpetas con aplicaciones
+  var MAX_FILES = 40000;            // tope de archivos que se indexan por carpeta
+  var MAX_ASSET = 12 * 1024 * 1024; // tamaño máximo de un recurso que se incorpora a la página
+  var MIME = {
+    png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp",
+    svg: "image/svg+xml", ico: "image/x-icon", avif: "image/avif", bmp: "image/bmp",
+    woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf",
+    mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg", mp4: "video/mp4", webm: "video/webm",
+    json: "application/json", css: "text/css", js: "text/javascript", pdf: "application/pdf"
+  };
+
+  var state = {
+    source: "",          // "handle" (selector del navegador) o "input" (carpeta por <input>)
+    handle: null,
+    rootName: "",
+    mainFiles: new Map(), // archivos de la carpeta principal: ruta relativa -> { getFile() }
+    files: new Map(),     // unión de la carpeta principal y las carpetas añadidas (estas con prefijo "+id/")
+    extras: [],           // carpetas de aplicaciones añadidas: { id, name, handle, files, needs }
+    links: [],            // enlaces web: { id, title, url, added }
+    hidden: {},           // aplicaciones de la carpeta principal quitadas de la lista
+    names: {},            // nombres que has puesto tú: ruta -> nombre
+    entryFile: {},        // archivo elegido para abrir cada aplicación: carpeta -> ruta del .html
+    lost: [],             // carpetas cuyo archivo elegido ya no existe
+    choosing: null,
+    mode: "config",
+    layout: "cards",
+    pages: [],            // aplicaciones locales encontradas (carpeta principal y carpetas añadidas)
+    needsAccess: false,
+    updated: 0,           // última vez que se puso al día la lista
+    busy: false,
+    q: "",
+    sort: "recent",
+    view: "list",         // "list" o "removed"
+    editing: null,
+    missingMain: false
+  };
+  var pinned = {};
+  var groupOf = {};      // grupo asignado por ti: ruta -> nombre del grupo
+  var tab = "";          // pestaña elegida: "" todas, "~" sin grupo, o el nombre del grupo
+  var openedWindows = [];
+  var toastTimer = null;
+
+  /* ---------- utilidades ---------- */
+  function hidden(name) { return name.charAt(0) === "." || !!SKIP[name]; }
+  function ext(path) { var m = /\.([a-z0-9]+)$/i.exec(path); return m ? m[1].toLowerCase() : ""; }
+  function dirOf(path) { var i = path.lastIndexOf("/"); return i < 0 ? "" : path.slice(0, i); }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+  function el(tag, props, kids) {
+    var n = document.createElement(tag);
+    if (props) for (var k in props) {
+      if (k === "text") n.textContent = props[k];
+      else if (k === "html") n.innerHTML = props[k];
+      else if (k === "on") for (var ev in props.on) n.addEventListener(ev, props.on[ev]);
+      else if (props[k] !== null && props[k] !== undefined && props[k] !== false) n.setAttribute(k, props[k] === true ? "" : props[k]);
+    }
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function toast(msg, label, fn) {
+    var t = $("#toast");
+    t.textContent = "";
+    t.appendChild(document.createTextNode(msg));
+    if (label) t.appendChild(el("button", { type: "button", class: "toast-btn", text: label, on: { click: function () { t.hidden = true; fn(); } } }));
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, label ? 8000 : (msg.length > 60 ? 6500 : 3200));
+  }
+  function hue(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360; return h; }
+  function norm(path) {
+    var out = [], segs = path.split("/");
+    for (var i = 0; i < segs.length; i++) {
+      var s = segs[i];
+      if (s === "" || s === ".") continue;
+      if (s === "..") { if (!out.length) return null; out.pop(); } else out.push(s);
+    }
+    return out.join("/");
+  }
+  function decodeEntities(t) { var ta = document.createElement("textarea"); ta.innerHTML = t; return ta.value; }
+  function newId() { return Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36); }
+  function normUrl(raw) {
+    var v = (raw || "").trim();
+    if (!v) return null;
+    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    try {
+      var x = new URL(v);
+      if (!/^https?:$/.test(x.protocol) || x.hostname.indexOf(".") < 0) return null;
+      return x.href;
+    } catch (e) { return null; }
+  }
+  function hhmm(ts) { try { return new Date(ts).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } }
+  function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return url; } }
+
+  /* Lo que se recuerda en este navegador */
+  function lsGet(key, fallback) {
+    try { var v = JSON.parse(localStorage.getItem("lanzador-webs:" + key)); return v === null || v === undefined ? fallback : v; }
+    catch (e) { return fallback; }
+  }
+  function lsSet(key, val) { try { localStorage.setItem("lanzador-webs:" + key, JSON.stringify(val)); } catch (e) {} }
+
+  function idb() {
+    return new Promise(function (res, rej) {
+      var r = indexedDB.open("lanzador-webs", 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore("kv"); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+  }
+  function kvGet(key) {
+    return idb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var q = db.transaction("kv").objectStore("kv").get(key);
+        q.onsuccess = function () { res(q.result); };
+        q.onerror = function () { rej(q.error); };
+      });
+    });
+  }
+  function kvSet(key, value) {
+    return idb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction("kv", "readwrite");
+        tx.objectStore("kv").put(value, key);
+        tx.oncomplete = function () { res(); };
+        tx.onerror = function () { rej(tx.error); };
+      });
+    });
+  }
+  function saveExtras() {
+    return kvSet("apps", state.extras.filter(function (x) { return x.handle; }).map(function (x) { return { id: x.id, name: x.name, handle: x.handle }; })).catch(function () {});
+  }
+
+  /* ---------- índice de archivos ---------- */
+  // En la carpeta principal solo se indexa lo que está dentro de subcarpetas.
+  // En la carpeta de una aplicación añadida se indexa todo, también su raíz.
+  async function indexHandle(root, includeRoot) {
+    var files = new Map(), count = 0;
+    async function walk(dir, prefix) {
+      for await (var entry of dir.values()) {
+        if (hidden(entry.name)) continue;
+        var path = prefix ? prefix + "/" + entry.name : entry.name;
+        if (entry.kind === "directory") await walk(entry, path);
+        else if (prefix || includeRoot) {
+          if (++count > MAX_FILES) throw new Error("demasiados archivos");
+          files.set(path, (function (h) { return { getFile: function () { return h.getFile(); } }; })(entry));
+        }
+      }
+    }
+    await walk(root, "");
+    return files;
+  }
+
+  function indexFileList(list, includeRoot) {
+    var files = new Map(), root = "";
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      var segs = (f.webkitRelativePath || f.name).split("/");
+      if (!root && segs.length > 1) root = segs[0];
+      segs.shift();
+      if (!segs.length) continue;
+      if (segs.length < 2 && !includeRoot) continue;   // archivo suelto en la carpeta elegida
+      if (segs.some(hidden)) continue;
+      if (files.size >= MAX_FILES) break;
+      files.set(segs.join("/"), (function (file) { return { getFile: function () { return Promise.resolve(file); } }; })(f));
+    }
+    return { files: files, root: root };
+  }
+
+  function rebuildFiles() {
+    var all = new Map(state.mainFiles);
+    state.extras.forEach(function (x) {
+      if (x.files) x.files.forEach(function (v, k) { all.set("+" + x.id + "/" + k, v); });
+    });
+    state.files = all;
+  }
+
+  function readFile(path) {
+    var f = state.files.get(path);
+    if (!f) return Promise.reject(new Error("no existe " + path));
+    return f.getFile();
+  }
+
+  function pickEntries(dir, names) {
+    var lower = names.map(function (n) { return n.toLowerCase(); });
+    if (lower.indexOf("index.html") >= 0) return [names[lower.indexOf("index.html")]];
+    if (lower.indexOf("index.htm") >= 0) return [names[lower.indexOf("index.htm")]];
+    return names;
+  }
+
+  async function discover() {
+    var chosen = [], byDir = {};
+    // carpeta principal: una aplicación por subcarpeta
+    state.mainFiles.forEach(function (_v, path) {
+      if (!/\.html?$/i.test(path)) return;
+      var dir = dirOf(path);
+      if (dir.split("/").length > MAX_DEPTH) return;
+      (byDir[dir] = byDir[dir] || []).push(path.slice(dir.length + 1));
+    });
+    // archivo elegido a mano para una carpeta; si ya no existe, se vuelve al automático
+    var lost = [];
+    function override(dir, sourceSize) {
+      var ov = state.entryFile[dir];
+      if (!ov) return null;
+      if (state.files.has(ov) && /\.html?$/i.test(ov)) return ov;
+      if (sourceSize > 0) { delete state.entryFile[dir]; lsSet("archivos", state.entryFile); lost.push(dir); }
+      return null;
+    }
+    var dirs = Object.keys(byDir);
+    Object.keys(state.entryFile).forEach(function (k) { if (k.charAt(0) !== "+" && dirs.indexOf(k) < 0) dirs.push(k); });
+    dirs.sort().forEach(function (dir) {
+      var ov = override(dir, state.mainFiles.size);
+      if (ov) { chosen.push({ kind: "main", dir: dir, name: ov.slice(dir.length + 1), path: ov }); return; }
+      if (!byDir[dir]) return;
+      pickEntries(dir, byDir[dir].sort()).forEach(function (n) { chosen.push({ kind: "main", dir: dir, name: n, path: dir + "/" + n }); });
+    });
+    // carpetas añadidas: solo los .html de su raíz
+    state.extras.forEach(function (x) {
+      if (!x.files) return;
+      var key = "+" + x.id, ov = override(key, x.files.size);
+      if (ov) { chosen.push({ kind: "app", appId: x.id, appName: x.name, dir: key, name: ov.slice(key.length + 1), path: ov }); return; }
+      var names = [];
+      x.files.forEach(function (_v, k) { if (k.indexOf("/") < 0 && /\.html?$/i.test(k)) names.push(k); });
+      pickEntries("", names.sort()).forEach(function (n) {
+        chosen.push({ kind: "app", appId: x.id, appName: x.name, dir: key, name: n, path: key + "/" + n });
+      });
+    });
+    state.lost = lost;
+    return Promise.all(chosen.map(async function (c) {
+      var file = await readFile(c.path), title = "";
+      try {
+        var head = await file.slice(0, 30000).text();
+        var m = head.match(/<title[^>]*>([^<]*)<\/title>/i);
+        if (m) title = decodeEntities(m[1]).replace(/\s+/g, " ").trim();
+      } catch (e) {}
+      var base = c.name.split("/").pop();
+      var isIndex = /^index\.html?$/i.test(base);
+      if (!title) title = c.kind === "app" ? (isIndex ? c.appName : base.replace(/\.html?$/i, "")) : (isIndex ? c.dir.split("/").pop() : base.replace(/\.html?$/i, ""));
+      c.autoTitle = title; c.title = state.names[c.path] || title; c.mtime = file.lastModified || 0;
+      return c;
+    }));
+  }
+
+  /* ---------- montar una página con sus recursos ---------- */
+  function resolveRef(fromPath, ref) {
+    if (!ref) return null;
+    ref = ref.trim();
+    if (!ref || /^(?:[a-z][a-z0-9+.\-]*:|\/\/|#)/i.test(ref)) return null;
+    var clean = ref.split("#")[0].split("?")[0];
+    try { clean = decodeURIComponent(clean); } catch (e) {}
+    var top = fromPath.split("/")[0];
+    var base = clean.charAt(0) === "/" ? top : dirOf(fromPath);
+    var p = norm((base ? base + "/" : "") + clean);
+    if (!p || !state.files.has(p)) return null;
+    // una carpeta añadida solo ve sus propios archivos; la principal no ve las añadidas
+    if (top.charAt(0) === "+") { if (p.split("/")[0] !== top) return null; }
+    else if (p.charAt(0) === "+") return null;
+    return p;
+  }
+  function toDataUrl(file, mime) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+      r.readAsDataURL(new Blob([file], { type: mime }));
+    });
+  }
+  function assetUrl(ctx, path) {
+    if (!(path in ctx.assets)) {
+      ctx.assets[path] = (async function () {
+        var f = await readFile(path);
+        if (f.size > MAX_ASSET) return null;
+        return toDataUrl(f, MIME[ext(path)] || f.type || "application/octet-stream");
+      })();
+    }
+    return ctx.assets[path];
+  }
+  async function replaceAsync(str, re, fn) {
+    var matches = [], m;
+    re.lastIndex = 0;
+    while ((m = re.exec(str)) !== null) { matches.push(m); if (m[0] === "") re.lastIndex++; }
+    var reps = await Promise.all(matches.map(fn));
+    var out = "", last = 0;
+    matches.forEach(function (mm, i) { out += str.slice(last, mm.index) + reps[i]; last = mm.index + mm[0].length; });
+    return out + str.slice(last);
+  }
+  async function inlineCss(ctx, css, cssPath, depth) {
+    css = await replaceAsync(css, /@import\s+(?:url\(\s*)?(["']?)([^"')\s;]+)\1\s*\)?([^;]*);/gi, async function (m) {
+      var p = resolveRef(cssPath, m[2]);
+      if (!p || depth > 5) return m[0];
+      var inner = await inlineCss(ctx, await (await readFile(p)).text(), p, depth + 1);
+      var media = (m[3] || "").trim();
+      return media ? "@media " + media + " {\n" + inner + "\n}" : inner;
+    });
+    return replaceAsync(css, /url\(\s*(["']?)([^"')]+?)\1\s*\)/gi, async function (m) {
+      var p = resolveRef(cssPath, m[2]);
+      if (!p) return m[0];
+      var u = await assetUrl(ctx, p);
+      return u ? 'url("' + u + '")' : m[0];
+    });
+  }
+
+  var BRIDGE = '<script>document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[data-lw-open]");if(!a)return;e.preventDefault();try{opener.postMessage({lanzador:"abrir",ruta:a.getAttribute("data-lw-open")},"*")}catch(x){}});<\/script>';
+
+  async function buildHtml(path) {
+    var ctx = { assets: {} };
+    var text = await (await readFile(path)).text();
+    var doc = new DOMParser().parseFromString(text, "text/html");
+    var list, i, n, p, u;
+
+    // <style> y atributos style con url()
+    list = doc.querySelectorAll("style");
+    for (i = 0; i < list.length; i++) list[i].textContent = await inlineCss(ctx, list[i].textContent, path, 0);
+    list = doc.querySelectorAll('[style*="url("]');
+    for (i = 0; i < list.length; i++) list[i].setAttribute("style", await inlineCss(ctx, list[i].getAttribute("style"), path, 0));
+
+    // hojas de estilo enlazadas
+    list = doc.querySelectorAll('link[rel~="stylesheet"][href]');
+    for (i = 0; i < list.length; i++) {
+      p = resolveRef(path, list[i].getAttribute("href"));
+      if (!p) continue;
+      n = doc.createElement("style");
+      if (list[i].getAttribute("media")) n.setAttribute("media", list[i].getAttribute("media"));
+      n.textContent = (await inlineCss(ctx, await (await readFile(p)).text(), p, 0)).replace(/<\/style/gi, "<\\/style");
+      list[i].replaceWith(n);
+    }
+
+    // iconos
+    list = doc.querySelectorAll('link[rel~="icon"][href], link[rel="apple-touch-icon"][href]');
+    for (i = 0; i < list.length; i++) {
+      p = resolveRef(path, list[i].getAttribute("href"));
+      if (!p) continue;
+      u = await assetUrl(ctx, p);
+      if (u) list[i].setAttribute("href", u);
+    }
+
+    // scripts
+    list = doc.querySelectorAll("script[src]");
+    for (i = 0; i < list.length; i++) {
+      p = resolveRef(path, list[i].getAttribute("src"));
+      if (!p) continue;
+      n = doc.createElement("script");
+      var type = list[i].getAttribute("type");
+      if (type) n.setAttribute("type", type);
+      n.textContent = (await (await readFile(p)).text()).replace(/<\/script/gi, "<\\/script");
+      if (list[i].hasAttribute("defer") && type !== "module") { list[i].remove(); doc.body.appendChild(n); }
+      else list[i].replaceWith(n);
+    }
+
+    // imágenes, audio, vídeo
+    var attrs = [["img[src]", "src"], ["source[src]", "src"], ["video[src]", "src"], ["audio[src]", "src"], ["video[poster]", "poster"], ["track[src]", "src"], ["embed[src]", "src"], ['input[type="image"][src]', "src"]];
+    for (var a = 0; a < attrs.length; a++) {
+      list = doc.querySelectorAll(attrs[a][0]);
+      for (i = 0; i < list.length; i++) {
+        p = resolveRef(path, list[i].getAttribute(attrs[a][1]));
+        if (!p) continue;
+        u = await assetUrl(ctx, p);
+        if (u) list[i].setAttribute(attrs[a][1], u);
+      }
+    }
+    list = doc.querySelectorAll("img[srcset], source[srcset]");
+    for (i = 0; i < list.length; i++) {
+      var parts = list[i].getAttribute("srcset").split(",");
+      for (var k = 0; k < parts.length; k++) {
+        var bits = parts[k].trim().split(/\s+/);
+        p = resolveRef(path, bits[0]);
+        if (p) { u = await assetUrl(ctx, p); if (u) { bits[0] = u; parts[k] = bits.join(" "); } }
+      }
+      list[i].setAttribute("srcset", parts.join(", "));
+    }
+
+    // enlaces a otras páginas de la carpeta: se abren a través del lanzador
+    list = doc.querySelectorAll("a[href]");
+    for (i = 0; i < list.length; i++) {
+      p = resolveRef(path, list[i].getAttribute("href"));
+      if (p && /\.html?$/i.test(p)) {
+        list[i].setAttribute("data-lw-open", p);
+        list[i].setAttribute("href", "#");
+        list[i].removeAttribute("target");
+      }
+    }
+
+    var base = doc.querySelector("base");
+    if (base) base.remove();
+    return "<!doctype html>\n" + doc.documentElement.outerHTML.replace(/<\/body>\s*<\/html>\s*$/i, BRIDGE + "</body></html>");
+  }
+
+  // La página se escribe dentro de la pestaña nueva, que hereda el origen del lanzador: así conserva
+  // localStorage e IndexedDB (con una dirección blob: el navegador los bloquea). Si no se puede, se usa blob:.
+  function showHtml(w, html) {
+    try { w.document.open(); w.document.write(html); w.document.close(); return; } catch (e) {}
+    w.location.href = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+  }
+
+  async function openPage(entry) {
+    // La pestaña se abre ya, dentro del clic, para que el navegador no la bloquee.
+    var w = window.open("about:blank", "_blank");
+    if (!w) { toast("El navegador bloqueó la pestaña nueva. Permite las ventanas emergentes para esta página."); return; }
+    try { w.document.title = entry.title; w.document.body.textContent = "Cargando…"; } catch (e) {}
+    try {
+      var html = await buildHtml(entry.path);
+      openedWindows.push(w);
+      showHtml(w, html);
+    } catch (e) {
+      try { w.close(); } catch (x) {}
+      toast("No se pudo abrir la aplicación. Comprueba que sigue en su carpeta y pulsa «Actualizar lista».");
+    }
+  }
+
+  // Un enlace entre páginas, pulsado dentro de una página abierta, navega en esa misma pestaña.
+  window.addEventListener("message", async function (e) {
+    var d = e.data;
+    if (!d || d.lanzador !== "abrir" || openedWindows.indexOf(e.source) < 0) return;
+    var path = typeof d.ruta === "string" ? d.ruta : "";
+    if (!state.files.has(path) || !/\.html?$/i.test(path)) return;
+    try { showHtml(e.source, await buildHtml(path)); }
+    catch (x) { toast("No se pudo abrir el enlace."); }
+  });
+
+  /* ---------- lista ---------- */
+  function allEntries() {
+    var out = state.pages.slice();
+    state.links.forEach(function (l) {
+      out.push({ kind: "link", id: l.id, title: l.title, url: l.url, mtime: l.added || 0, path: "link:" + l.id, dir: "enlaces" });
+    });
+    return out;
+  }
+  function isRemoved(p) { return p.kind === "main" && !!state.hidden[p.path]; }
+  function removedList() { return state.pages.filter(isRemoved); }
+  function activeList() { return allEntries().filter(function (p) { return !isRemoved(p); }); }
+
+  function visible() {
+    var q = state.q.trim().toLowerCase();
+    var base = state.view === "removed" ? removedList() : activeList();
+    if (!q && tab && state.view !== "removed") base = base.filter(function (p) { return tab === "~" ? !groupOf[p.path] : groupOf[p.path] === tab; });
+    var list = base.filter(function (p) { return !q || (p.title + " " + (p.kind === "app" ? p.appName : p.path) + " " + (p.url || "")).toLowerCase().indexOf(q) >= 0; });
+    list.sort(function (a, b) {
+      if (state.view === "list" && !!pinned[a.path] !== !!pinned[b.path]) return pinned[a.path] ? -1 : 1;
+      if (state.sort === "az") return a.title.localeCompare(b.title, "es");
+      if (state.sort === "folder") return (a.kind === "main" ? a.path : "~" + a.title).localeCompare(b.kind === "main" ? b.path : "~" + b.title, "es");
+      return b.mtime - a.mtime;
+    });
+    return list;
+  }
+
+  var SVG = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + "</svg>"; };
+
+  // Icono según el significado del nombre (carpeta + título); si nada encaja, el icono genérico de aplicación.
+  var ICON_RULES = [
+    [/\b(samba|smb|ftp|sftp|nfs|servidor|server|dns|dhcp|cups|proxy|apache|nginx|bind|ntp)/, '<rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/>'],
+    [/\b(seguridad|firewall|ssh|ssl|tls|cifrado|iptables|ufw|hacking|ciber|antivirus|certificado)/, '<path d="M12 3 5 6v5c0 4.5 3 8.2 7 10 4-1.8 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>'],
+    [/\b(sql|mysql|mariadb|postgres|mongo|datos|bbdd|base de datos|database)/, '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>'],
+    [/\b(red|redes|vpn|lan|wan|router|switch|cisco|wifi|wi-fi|vlan|tcp|ip|ipv4|ipv6|subred|network)\b/, '<circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4M12 11l-6 6M12 11l6 6"/>'],
+    [/\b(usuarios|usuario|active directory|ldap|dominio|grupos|permisos|cuentas|windows server|kerberos)/, '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/>'],
+    [/\b(debian|linux|ubuntu|bash|shell|comando|consola|terminal|centos|fedora|so|sistemas operativos|scripting)\b/, '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/>'],
+    [/\b(backup|copia|raid|disco|almacenamiento|lvm|particion|rsync|cinta)/, '<path d="M4 14h16M4 14l2.5-8h11L20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4Z"/><path d="M8 17h.01M12 17h.01"/>'],
+    [/\b(correo|mail|email|postfix|dovecot|smtp|imap)/, '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'],
+    [/\b(nube|cloud|aws|azure|docker|virtual|vmware|virtualbox|proxmox|contenedor|kubernetes|vagrant)/, '<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9H7Z"/>'],
+    [/\b(estadistica|grafica|informe|monitoriz|nagios|zabbix|grafana|rendimiento|metricas)/, '<path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6"/>'],
+    [/\b(programacion|javascript|js|python|php|css|java|codigo|script|git|github|desarrollo|code)\b/, '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>'],
+    [/\b(windows|escritorio|monitor|cliente|equipos|hardware)/, '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'],
+    [/\b(tutoria|tutor|curso|apuntes|manual|guia|tutorial|clase|ejercicio|examen|temario|teoria|docs|documentacion|practica|unidad|tema)/, '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5Z"/><path d="M4 19a2 2 0 0 1 2-2h13"/>'],
+    [/\b(web|html|internet|http|https|wordpress|sitio|pagina|portal|blog|visor|visores)/, '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>']
+  ];
+  var ICON_APP = '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>';
+  var ICON_LINK = '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>';
+  function iconFor(p) {
+    var where = p.kind === "link" ? "" : p.kind === "app" ? p.appName : p.dir;
+    var txt = (String(p.title || "") + " " + where).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[_\-.\/]+/g, " ");
+    for (var i = 0; i < ICON_RULES.length; i++) if (ICON_RULES[i][0].test(txt)) return SVG(ICON_RULES[i][1]);
+    return SVG(p.kind === "link" ? ICON_LINK : ICON_APP);
+  }
+  function tileEl(p) {
+    var src = p.kind === "link" ? "enlace" : p.kind === "app" ? p.appName : p.dir.split("/")[0];
+    return el("div", { class: "tile", style: "--h:" + hue(src), "aria-hidden": "true", html: iconFor(p) });
+  }
+  var ICON_OPEN = SVG('<path d="M7 17 17 7M8 7h9v9"/>');
+  var ICON_STAR = SVG('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z"/>');
+  var ICON_TRASH = SVG('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>');
+  var ICON_EDIT = SVG('<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>');
+  var ICON_FOLDER = SVG('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>');
+  var ICON_UNDO = SVG('<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>');
+
+  function metaText(p) {
+    var date = p.mtime ? new Date(p.mtime).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "";
+    if (p.kind === "link") return "Enlace web · " + hostOf(p.url) + (date ? " · añadido el " + date : "");
+    if (p.kind === "app") return "Carpeta añadida «" + p.appName + "»" + (date ? " · modificada el " + date : "");
+    return p.path + (date ? " · modificada el " + date : "");
+  }
+  function metaFull(p) { return metaText(p) + (state.mode === "config" && groupOf[p.path] ? " · Grupo: " + groupOf[p.path] : ""); }
+
+  function row(p) {
+    if (state.editing === p.path) return editRow(p);
+    if (state.choosing === p.path) return chooseRow(p);
+    var removedView = state.view === "removed";
+    var cfg = state.mode === "config";
+    var isPinned = !!pinned[p.path];
+    var actions = [];
+    if (!removedView) {
+      actions.push(el("button", {
+        type: "button", class: "icon-btn", "aria-pressed": isPinned ? "true" : "false",
+        "aria-label": isPinned ? "Quitar de destacadas" : "Destacar", title: isPinned ? "Quitar de destacadas" : "Destacar",
+        html: ICON_STAR,
+        on: { click: function () { if (pinned[p.path]) delete pinned[p.path]; else pinned[p.path] = true; lsSet("destacadas", pinned); render(); } }
+      }));
+      if (cfg) actions.push(el("button", {
+        type: "button", class: "icon-btn", "aria-label": "Cambiar el nombre y el grupo", title: "Cambiar el nombre y el grupo",
+        html: ICON_EDIT, on: { click: function () { state.editing = p.path; render(); } }
+      }));
+      if (cfg) actions.push(el("button", {
+        type: "button", class: "icon-btn danger", "aria-label": "Quitar de la lista", title: "Quitar de la lista",
+        html: ICON_TRASH, on: { click: function () { removeEntry(p); } }
+      }));
+    }
+    // el nombre es el acceso directo: su capa invisible cubre toda la tarjeta
+    var title;
+    if (removedView) title = el("h3", { text: p.title });
+    else if (p.kind === "link") title = el("h3", {}, [el("a", { class: "launch", href: p.url, target: "_blank", rel: "noopener noreferrer", text: p.title })]);
+    else title = el("h3", {}, [el("button", { type: "button", class: "launch", text: p.title, title: "Abrir " + p.title + " — " + p.path, on: { click: function () { openPage(p); } } })]);
+    var meta = cfg || removedView ? metaFull(p) : p.path;
+    return el("article", { class: "card app-card" + (removedView ? " removed" : "") }, [
+      el("div", { class: "top" }, [tileEl(p), el("div", { class: "actions" }, actions)]),
+      el("div", { class: "body" }, [
+        title,
+        el("p", { text: meta }),
+        cfg && !removedView && p.kind !== "link" ? el("button", { type: "button", class: "linkbtn", text: "Cambiar archivo", on: { click: function () { state.choosing = p.path; state.editing = null; render(); } } }) : null
+      ]),
+      removedView ? el("button", { type: "button", class: "btn primary restore", html: ICON_UNDO + "<span>Restaurar</span>", on: { click: function () { restore(p); } } }) : null
+    ]);
+  }
+
+  function groupNames() {
+    var seen = {};
+    Object.keys(groupOf).forEach(function (k) { seen[groupOf[k]] = true; });
+    return Object.keys(seen).sort(function (a, b) { return a.localeCompare(b, "es"); });
+  }
+  function tabsData() {
+    var list = activeList(), counts = {}, none = 0;
+    list.forEach(function (p) { var g = groupOf[p.path]; if (g) counts[g] = (counts[g] || 0) + 1; else none++; });
+    return { names: Object.keys(counts).sort(function (x, y) { return x.localeCompare(y, "es"); }), counts: counts, none: none, total: list.length };
+  }
+  function renderTabs() {
+    var box = $("#tabs"), d = tabsData();
+    box.textContent = "";
+    var settled = d.total > 0 && !state.busy;   // mientras carga no se toca la pestaña recordada
+    if (!d.names.length || state.view === "removed") { box.hidden = true; if (settled && state.view !== "removed" && tab) tab = ""; return; }
+    if (settled && (tab === "~" ? !d.none : (tab && !d.counts[tab]))) tab = "";
+    var items = d.names.map(function (n) { return [n, n, d.counts[n]]; });
+    if (d.none) items.push(["~", "Sin grupo", d.none]);
+    items.push(["", "Todas", d.total]);
+    items.forEach(function (it) {
+      box.appendChild(el("button", {
+        type: "button", class: "tab", role: "tab", "aria-selected": it[0] === tab ? "true" : "false", tabindex: it[0] === tab ? "0" : "-1",
+        on: {
+          click: function () { tab = it[0]; lsSet("pestana", tab); render(); },
+          keydown: function (e) {
+            var i = items.indexOf(it), j = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : -1;
+            if (j < 0 || j >= items.length) return;
+            e.preventDefault(); tab = items[j][0]; lsSet("pestana", tab); render();
+            var nb = $("#tabs").querySelectorAll(".tab")[j]; if (nb) nb.focus();
+          }
+        }
+      }, [document.createTextNode(it[1]), el("small", { text: String(it[2]) })]));
+    });
+    box.classList.toggle("searching", !!state.q.trim());
+    box.hidden = false;
+  }
+
+  function editRow(p) {
+    var isLink = p.kind === "link";
+    var nameIn = el("input", { type: "text", maxlength: "100", value: p.title, autocomplete: "off" });
+    var urlIn = isLink ? el("input", { type: "url", maxlength: "600", value: p.url, autocomplete: "off" }) : null;
+    var err = el("p", { class: "err", role: "alert" });
+    var groupIn = el("input", { type: "text", maxlength: "40", value: groupOf[p.path] || "", autocomplete: "off", list: "group-names", placeholder: "Sin grupo" });
+    function saveGroup() {
+      var g = groupIn.value.trim().replace(/\s+/g, " ");
+      if (g) groupOf[p.path] = g; else delete groupOf[p.path];
+      lsSet("grupos", groupOf);
+    }
+    function save() {
+      var name = nameIn.value.trim();
+      if (isLink) {
+        var url = normUrl(urlIn.value);
+        if (!name) { err.textContent = "Escribe un nombre."; nameIn.focus(); return; }
+        if (!url) { err.textContent = "La dirección no es válida."; urlIn.focus(); return; }
+        state.links.forEach(function (l) { if (l.id === p.id) { l.title = name; l.url = url; } });
+        lsSet("enlaces", state.links);
+      } else {
+        if (!name || name === p.autoTitle) delete state.names[p.path]; else state.names[p.path] = name;
+        lsSet("nombres", state.names);
+        state.pages.forEach(function (q) { if (q.path === p.path) q.title = state.names[q.path] || q.autoTitle; });
+      }
+      saveGroup();
+      state.editing = null; render(); toast("Guardado");
+    }
+    var fields = [el("label", {}, [document.createTextNode("Nombre"), nameIn])];
+    if (isLink) fields.push(el("label", {}, [document.createTextNode("Dirección"), urlIn]));
+    else fields.push(el("p", { class: "hint", text: "Solo cambia el nombre que ves en esta lista; no renombra ningún archivo. Déjalo vacío para volver al nombre original («" + p.autoTitle + "»)." }));
+    var dl = el("datalist", { id: "group-names" });
+    groupNames().forEach(function (g) { dl.appendChild(el("option", { value: g })); });
+    fields.push(el("label", {}, [document.createTextNode("Grupo (opcional)"), groupIn, dl]));
+    fields.push(el("p", { class: "hint", text: "Escribe un nombre nuevo o elige uno que ya exista, por ejemplo «ASIR». Déjalo vacío para quitarlo del grupo." }));
+    fields.push(err);
+    var form = el("form", { class: "card edit", novalidate: true, on: { submit: function (e) { e.preventDefault(); save(); } } }, [
+      tileEl(isLink ? { kind: "link", title: p.title } : p),
+      el("div", { class: "fields" }, fields),
+      el("div", { class: "row" }, [
+        el("button", { type: "submit", class: "btn primary", text: "Guardar" }),
+        el("button", { type: "button", class: "btn", text: "Cancelar", on: { click: function () { state.editing = null; render(); } } })
+      ])
+    ]);
+    setTimeout(function () { nameIn.focus(); nameIn.select(); }, 0);
+    return form;
+  }
+
+  function banner(text, buttons) {
+    return el("div", { class: "banner" }, [el("span", { text: text })].concat(buttons));
+  }
+  function renderMissing() {
+    var box = $("#missing");
+    box.textContent = "";
+    if (state.missingMain) {
+      box.appendChild(banner("No se encuentra la carpeta «" + state.rootName + "». Puede que la hayas renombrado o movido.",
+        [el("button", { type: "button", class: "btn primary", html: ICON_FOLDER + "<span>Localizar carpeta…</span>", on: { click: pickFolder } })]));
+    }
+    state.extras.forEach(function (x) {
+      if (!x.missing) return;
+      box.appendChild(banner("No se encuentra la carpeta «" + x.name + "». Puede que la hayas renombrado o movido.", [
+        el("button", { type: "button", class: "btn primary", html: ICON_FOLDER + "<span>Localizar carpeta…</span>", on: { click: function () { relocateApp(x); } } }),
+        el("button", { type: "button", class: "btn", text: "Quitar", on: { click: function () { removeMissing(x); } } })
+      ]));
+    });
+  }
+  async function relocateApp(x) {
+    var h;
+    try { h = await window.showDirectoryPicker({ id: "lanzador-app", mode: "read" }); } catch (e) { return; }
+    x.handle = h; x.name = h.name || x.name; x.files = null; x.missing = false;
+    await saveExtras();
+    await reload("never");
+    toast("Carpeta localizada: «" + x.name + "»");
+  }
+  async function removeMissing(x) {
+    state.extras = state.extras.filter(function (e) { return e !== x; });
+    await saveExtras();
+    await reload("never");
+  }
+
+  function candidatesFor(p) {
+    var prefix = p.dir + "/", out = [];
+    state.files.forEach(function (_v, path) { if (path.indexOf(prefix) === 0 && /\.html?$/i.test(path)) out.push(path); });
+    return out.sort();
+  }
+  function migrateKey(from, to) {
+    if (from === to) return;
+    [[pinned, "destacadas"], [state.hidden, "quitadas"], [state.names, "nombres"], [groupOf, "grupos"]].forEach(function (pr) {
+      if (pr[0][from]) { pr[0][to] = pr[0][from]; delete pr[0][from]; lsSet(pr[1], pr[0]); }
+    });
+  }
+  function reportLost() {
+    if (!state.lost.length) return "";
+    var names = state.lost.map(function (k) {
+      if (k.charAt(0) === "+") { var x = state.extras.filter(function (e) { return "+" + e.id === k; })[0]; return "«" + (x ? x.name : k) + "»"; }
+      return "«" + k + "»";
+    });
+    state.lost = [];
+    return "El archivo elegido para " + names.join(", ") + " ya no existe: se usa el automático. Pulsa «Cambiar archivo» para elegir otro.";
+  }
+  async function saveFile(p, value) {
+    if (value) state.entryFile[p.dir] = value; else delete state.entryFile[p.dir];
+    lsSet("archivos", state.entryFile);
+    var fresh = await discover();
+    var same = fresh.filter(function (q) { return q.dir === p.dir && q.kind === p.kind; });
+    if (same.length === 1) {
+      migrateKey(p.path, same[0].path);
+      same[0].title = state.names[same[0].path] || same[0].autoTitle;
+    }
+    state.choosing = null;
+    state.pages = fresh;
+    render();
+    toast(value ? "Archivo cambiado: ahora se abre «" + value.slice(p.dir.length + 1) + "»" : "Vuelve a elegirse el archivo automático");
+  }
+  function chooseRow(p) {
+    var prefixLen = p.dir.length + 1, cur = state.entryFile[p.dir] || "";
+    var form = el("form", { class: "card edit", novalidate: true });
+    var box = el("div", { class: "choices", role: "radiogroup", "aria-label": "Archivo que abre la aplicación" });
+    function opt(value, label, hint) {
+      var inp = el("input", { type: "radio", name: "efile", value: value });
+      inp.checked = value === cur;
+      box.appendChild(el("label", { class: "choice" }, [inp, el("span", {}, [document.createTextNode(label), hint ? el("small", { text: " " + hint }) : null])]));
+    }
+    opt("", "Automático", "(index.html, o el primero que haya)");
+    candidatesFor(p).forEach(function (c) { opt(c, c.slice(prefixLen)); });
+    form.appendChild(tileEl(p));
+    form.appendChild(el("div", { class: "fields" }, [
+      el("strong", { text: "Archivo que abre «" + p.title + "»" }),
+      el("p", { class: "hint", text: "Ahora: " + p.name + ". Elige otro de esta carpeta, por ejemplo si lo has renombrado." }),
+      box
+    ]));
+    form.appendChild(el("div", { class: "row" }, [
+      el("button", { type: "submit", class: "btn primary", text: "Guardar" }),
+      el("button", { type: "button", class: "btn", text: "Cancelar", on: { click: function () { state.choosing = null; render(); } } })
+    ]));
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var sel = form.querySelector('input[name="efile"]:checked');
+      saveFile(p, sel ? sel.value : "");
+    });
+    return form;
+  }
+
+  function stateCard(title, text, buttons) {
+    return el("div", { class: "state" }, [el("strong", { text: title }), el("p", { text: text }), buttons && buttons.length ? el("div", { class: "row" }, buttons) : null]);
+  }
+
+  function pendingNames() {
+    var names = [];
+    if (state.source === "handle" && state.handle && state.needsMain) names.push("«" + state.rootName + "»");
+    state.extras.forEach(function (x) { if (x.needs) names.push("«" + x.name + "»"); });
+    return names;
+  }
+
+  function render() {
+    var out = $("#out");
+    out.textContent = "";
+    var hasFolder = !!state.rootName;
+    var total = activeList().length, removed = removedList().length;
+    var cfg = state.mode === "config";
+    if (!cfg && state.view === "removed") state.view = "list";
+    $("#mode").value = cfg ? "config" : "use";
+    $("#pick").hidden = !cfg;
+    $("#add").hidden = !cfg;
+    $("#sort").hidden = !cfg;
+    if (!cfg) $("#add-panel").hidden = true;
+
+    $("#pick span").textContent = hasFolder ? "Cambiar carpeta" : "Elegir carpeta";
+    $("#reload").hidden = !(hasFolder || state.extras.some(function (x) { return x.handle; }));
+    $("#tools-wrap").hidden = !(cfg || !$("#reload").hidden);
+    if ($("#tools-wrap").hidden) closeMenu();
+    $("#note").hidden = !cfg || !(hasFolder || total > 0);
+    $("#tools").hidden = !(total > 0 || removed > 0);
+    var tg = $("#removed-toggle");
+    tg.hidden = !cfg || (!removed && state.view !== "removed");
+    tg.innerHTML = (state.view === "removed" ? ICON_UNDO : ICON_TRASH) + "<span>" + (state.view === "removed" ? "Volver a la lista" : "Quitadas (" + removed + ")") + "</span>";
+
+    renderMissing();
+    renderTabs();
+    var access = $("#access");
+    access.hidden = !state.needsAccess;
+    if (state.needsAccess) $("#access-text").textContent = "El navegador pide confirmar el acceso a " + pendingNames().join(" y ") + " cada vez que abres el lanzador.";
+
+    if (state.busy) { $("#status").textContent = "Buscando aplicaciones…"; return; }
+
+    var list = visible();
+    if (state.view === "removed") {
+      $("#status").textContent = plural(removed, "aplicación quitada", "aplicaciones quitadas") + " de la lista · sus archivos no se han borrado";
+      if (!removed) { state.view = "list"; render(); return; }
+    } else {
+      $("#status").textContent = (hasFolder ? "Carpeta «" + state.rootName + "» · " : "") + plural(total, "aplicación", "aplicaciones") +
+        (state.q.trim() ? " · " + plural(list.length, "coincidencia", "coincidencias") : "") +
+        (state.updated ? " · actualizada a las " + hhmm(state.updated) : "");
+    }
+
+    if (!total && !removed) {
+      if (!hasFolder) {
+        $("#status").textContent = "Elige la carpeta donde guardas tus webs.";
+        out.appendChild(stateCard("Todavía no hay aplicaciones",
+          "Elige la carpeta que contiene las carpetas de tus webs, o añade una aplicación suelta o un enlace. Solo se leen las subcarpetas, y solo cuando abres una aplicación.",
+          [el("button", { type: "button", class: "btn primary", text: "Elegir carpeta", on: { click: pickFolder } }),
+           el("button", { type: "button", class: "btn", text: "Añadir aplicación", on: { click: openAdd } })]));
+      } else {
+        out.appendChild(stateCard("No se encontró ninguna aplicación",
+          "Dentro de «" + state.rootName + "» crea una subcarpeta por web, cada una con su index.html, y pulsa «Actualizar lista». También puedes añadir una aplicación suelta o un enlace.",
+          [el("button", { type: "button", class: "btn primary", text: "Añadir aplicación", on: { click: openAdd } })]));
+      }
+      return;
+    }
+    if (!total && state.view === "list") {
+      out.appendChild(stateCard("Has quitado todas las aplicaciones de la lista", "Puedes restaurarlas cuando quieras.",
+        [el("button", { type: "button", class: "btn primary", text: "Ver quitadas (" + removed + ")", on: { click: function () { state.view = "removed"; render(); } } })]));
+      return;
+    }
+    if (!list.length) { out.appendChild(stateCard("Sin resultados", "Prueba con otra palabra.")); return; }
+    var box = el("div", { class: "list" + (state.view !== "removed" && state.layout !== "cards" ? " v-" + state.layout : "") });
+    list.forEach(function (p) { box.appendChild(row(p)); });
+    out.appendChild(box);
+  }
+
+  /* ---------- quitar y restaurar ---------- */
+  function removeEntry(p) {
+    if (p.kind === "link") {
+      var idx = -1;
+      state.links.forEach(function (l, i) { if (l.id === p.id) idx = i; });
+      if (idx < 0) return;
+      var link = state.links.splice(idx, 1)[0];
+      lsSet("enlaces", state.links);
+      render();
+      toast("Enlace «" + p.title + "» quitado", "Deshacer", function () { state.links.splice(idx, 0, link); lsSet("enlaces", state.links); render(); });
+    } else if (p.kind === "app") {
+      var xi = -1;
+      state.extras.forEach(function (x, i) { if (x.id === p.appId) xi = i; });
+      if (xi < 0) return;
+      var ex = state.extras.splice(xi, 1)[0];
+      saveExtras();
+      rebuildFiles();
+      state.pages = state.pages.filter(function (q) { return q.appId !== ex.id; });
+      render();
+      toast("«" + ex.name + "» quitada de la lista", "Deshacer", function () {
+        state.extras.splice(xi, 0, ex); saveExtras(); rebuildFiles();
+        discover().then(function (pg) { state.pages = pg; render(); });
+      });
+    } else {
+      state.hidden[p.path] = true;
+      lsSet("quitadas", state.hidden);
+      render();
+      toast("«" + p.title + "» quitada de la lista", "Deshacer", function () { delete state.hidden[p.path]; lsSet("quitadas", state.hidden); render(); });
+    }
+  }
+  function restore(p) {
+    delete state.hidden[p.path];
+    lsSet("quitadas", state.hidden);
+    render();
+    toast("«" + p.title + "» restaurada");
+  }
+
+  /* ---------- añadir ---------- */
+  function openAdd() {
+    $("#add-panel").hidden = false;
+    $("#link-err").textContent = "";
+    $("#add-panel").scrollIntoView({ block: "nearest" });
+    $("#l-title").focus();
+  }
+  function closeAdd() { $("#add-panel").hidden = true; }
+
+  async function registerApp(name, handle, files) {
+    var hasHtml = false;
+    files.forEach(function (_v, k) { if (k.indexOf("/") < 0 && /\.html?$/i.test(k)) hasHtml = true; });
+    if (!hasHtml) { toast("No hay ningún archivo .html directamente en esa carpeta."); return; }
+    if (handle) {
+      for (var i = 0; i < state.extras.length; i++) {
+        var other = state.extras[i].handle;
+        try { if (other && await other.isSameEntry(handle)) { toast("Esa carpeta ya está añadida."); return; } } catch (e) {}
+      }
+    }
+    state.extras.push({ id: "a" + newId(), name: name || "Aplicación", handle: handle || null, files: files, needs: false });
+    await saveExtras();
+    rebuildFiles();
+    state.pages = await discover();
+    closeAdd();
+    render();
+    toast(handle ? "Aplicación añadida" : "Aplicación añadida solo para esta sesión: este navegador no puede recordar carpetas.");
+  }
+
+  async function addAppHandle(handle) {
+    await registerApp(handle.name, handle, await indexHandle(handle, true));
+  }
+
+  async function addFolder() {
+    if (window.showDirectoryPicker) {
+      try {
+        var h = await window.showDirectoryPicker({ id: "lanzador-app", mode: "read" });
+        await addAppHandle(h);
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        // Si el selector no está disponible aquí, se usa el selector clásico.
+      }
+    }
+    var inp = $("#app-input"); inp.value = ""; inp.click();
+  }
+
+  $("#app-input").addEventListener("change", async function (e) {
+    var r = indexFileList(e.target.files || [], true);
+    if (!r.root) return;
+    await registerApp(r.root, null, r.files);
+  });
+
+  $("#add-link-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var title = $("#l-title").value.trim(), url = normUrl($("#l-url").value), err = $("#link-err");
+    if (!title) { err.textContent = "Escribe un nombre para reconocer el enlace."; $("#l-title").focus(); return; }
+    if (!url) { err.textContent = "La dirección no es válida. Ejemplo: https://ejemplo.com/pagina"; $("#l-url").focus(); return; }
+    state.links.push({ id: newId(), title: title, url: url, added: Date.now() });
+    lsSet("enlaces", state.links);
+    $("#l-title").value = ""; $("#l-url").value = ""; err.textContent = "";
+    closeAdd();
+    render();
+    toast("Enlace añadido");
+  });
+
+  $("#add").addEventListener("click", function () { if ($("#add-panel").hidden) openAdd(); else closeAdd(); });
+  $("#add-close").addEventListener("click", closeAdd);
+  $("#add-folder").addEventListener("click", addFolder);
+  $("#removed-toggle").addEventListener("click", function () { state.view = state.view === "removed" ? "list" : "removed"; render(); });
+
+  /* ---------- carpeta principal ---------- */
+  async function hasAccess(handle) {
+    try { return (await handle.queryPermission({ mode: "read" })) === "granted"; } catch (e) { return false; }
+  }
+
+  function labelOf(p) { return p.kind === "app" ? p.appName + "/" + p.name : p.path; }
+
+  // Compara la lista anterior con la nueva y empareja lo que parece un cambio de nombre.
+  function diffPages(oldPages, newPages) {
+    var oldMap = {}, newMap = {};
+    oldPages.forEach(function (p) { oldMap[p.path] = p; });
+    newPages.forEach(function (p) { newMap[p.path] = p; });
+    var gone = oldPages.filter(function (p) { return !newMap[p.path]; });
+    var fresh = newPages.filter(function (p) { return !oldMap[p.path]; });
+    var renamed = [];
+    function pair(g, f) { renamed.push({ from: g, to: f }); gone = gone.filter(function (x) { return x !== g; }); fresh = fresh.filter(function (x) { return x !== f; }); }
+    // 1. misma carpeta y mismo título
+    gone.slice().forEach(function (g) {
+      var m = fresh.filter(function (f) { return f.kind === g.kind && f.dir === g.dir && f.autoTitle.toLowerCase() === g.autoTitle.toLowerCase(); })[0];
+      if (m) pair(g, m);
+    });
+    // 2. otra carpeta pero mismo título
+    gone.slice().forEach(function (g) {
+      var m = fresh.filter(function (f) { return f.kind === g.kind && f.autoTitle.toLowerCase() === g.autoTitle.toLowerCase(); })[0];
+      if (m) pair(g, m);
+    });
+    // 3. una sola que falta y una sola nueva en la misma carpeta
+    gone.slice().forEach(function (g) {
+      var gs = gone.filter(function (x) { return x.dir === g.dir && x.kind === g.kind; });
+      var fs = fresh.filter(function (x) { return x.dir === g.dir && x.kind === g.kind; });
+      if (gs.length === 1 && fs.length === 1) pair(g, fs[0]);
+    });
+    // 4. una sola que falta y una sola nueva en toda la lista
+    if (gone.length === 1 && fresh.length === 1 && gone[0].kind === fresh[0].kind) pair(gone[0], fresh[0]);
+    return { renamed: renamed, gone: gone, fresh: fresh };
+  }
+
+  function commitPages(fresh, before, mode) {
+    var info = before ? diffPages(before, fresh) : null;
+    if (info && info.renamed.length) {
+      info.renamed.forEach(function (r) {
+        [[pinned, "destacadas"], [state.hidden, "quitadas"], [state.names, "nombres"], [groupOf, "grupos"]].forEach(function (pr) {
+          if (pr[0][r.from.path]) { pr[0][r.to.path] = pr[0][r.from.path]; delete pr[0][r.from.path]; lsSet(pr[1], pr[0]); }
+        });
+        r.to.title = state.names[r.to.path] || r.to.autoTitle;
+      });
+    }
+    state.pages = fresh;
+    state.updated = Date.now();
+    render();
+    var lostMsg = reportLost();
+    if (!info) { if (lostMsg) toast(lostMsg); return; }
+    var changed = info.renamed.length || info.fresh.length || info.gone.length;
+    if (mode === "never" || (mode === "changes" && !changed)) { if (lostMsg) toast(lostMsg); return; }
+    var parts = info.renamed.map(function (r) { return "«" + labelOf(r.from) + "» ahora es «" + labelOf(r.to) + "»"; });
+    if (info.fresh.length) parts.push(plural(info.fresh.length, "nueva", "nuevas"));
+    if (info.gone.length) parts.push(plural(info.gone.length, "ya no está", "ya no están"));
+    toast(lostMsg || (parts.length ? "Lista actualizada: " + parts.join(" · ") : "Lista actualizada: sin cambios"));
+  }
+
+  // mode: "always" (avisa siempre), "changes" (solo si hay cambios) o "never"
+  async function reload(mode) {
+    state.busy = true; render();
+    var needs = false, missingMain = false, before = state.pages, fresh = null;
+    state.needsMain = false;
+    try {
+      if (state.source === "handle" && state.handle) {
+        if (await hasAccess(state.handle)) {
+          try { state.mainFiles = await indexHandle(state.handle, false); }
+          catch (e) { if (e && e.name === "NotFoundError") { missingMain = true; state.mainFiles = new Map(); } else throw e; }
+        } else { needs = true; state.needsMain = true; }
+      }
+      for (var i = 0; i < state.extras.length; i++) {
+        var x = state.extras[i];
+        if (!x.handle) continue;
+        if (await hasAccess(x.handle)) {
+          try { x.files = await indexHandle(x.handle, true); x.needs = false; x.missing = false; }
+          catch (e) { if (e && e.name === "NotFoundError") { x.missing = true; x.files = null; } else throw e; }
+        } else { x.needs = true; needs = true; }
+      }
+      rebuildFiles();
+      fresh = await discover();
+    } catch (e) {
+      toast(e && e.message === "demasiados archivos" ? "Una carpeta tiene demasiados archivos. Elige una más pequeña." : "No se pudo leer una carpeta. Vuelve a elegirla.");
+    }
+    state.needsAccess = needs;
+    state.missingMain = missingMain;
+    state.busy = false;
+    if (!fresh) { render(); return; }
+    var anyMissing = missingMain || state.extras.some(function (x) { return x.missing; });
+    commitPages(fresh, anyMissing || needs ? null : before, anyMissing || needs ? "never" : (mode || "never"));
+  }
+
+  async function adoptHandle(handle) {
+    var same = state.rootName === (handle.name || "carpeta"), wasMissing = state.missingMain;
+    state.source = "handle"; state.handle = handle; state.rootName = handle.name || "carpeta";
+    await reload(same && !wasMissing ? "always" : "never");
+    if (wasMissing && !state.missingMain) toast("Carpeta localizada: «" + state.rootName + "»");
+  }
+
+  async function regrantAccess() {
+    try {
+      var hs = [];
+      if (state.source === "handle" && state.handle) hs.push(state.handle);
+      state.extras.forEach(function (x) { if (x.handle) hs.push(x.handle); });
+      for (var i = 0; i < hs.length; i++) {
+        if (!(await hasAccess(hs[i]))) await hs[i].requestPermission({ mode: "read" });
+      }
+      await reload("never");
+      if (state.needsAccess) toast("Sin permiso no se puede leer alguna carpeta.");
+    } catch (e) { toast("No se pudo pedir el permiso. Elige la carpeta otra vez."); }
+  }
+
+  async function pickFolder() {
+    if (window.showDirectoryPicker) {
+      try {
+        var h = await window.showDirectoryPicker({ id: "lanzador-webs", mode: "read" });
+        try { await kvSet("raiz", h); } catch (e) {}
+        await adoptHandle(h);
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        // Si el selector no está disponible aquí, se usa el selector clásico.
+      }
+    }
+    var inp = $("#dir-input"); inp.value = ""; inp.click();
+  }
+
+  $("#dir-input").addEventListener("change", async function (e) {
+    var r = indexFileList(e.target.files || [], false);
+    if (!r.root) return;
+    var same = state.rootName === r.root, before = state.pages;
+    state.source = "input"; state.handle = null; state.rootName = r.root; state.mainFiles = r.files; state.needsAccess = false; state.missingMain = false;
+    state.busy = true; render();
+    rebuildFiles();
+    var fresh = await discover();
+    state.busy = false;
+    commitPages(fresh, same ? before : null, same ? "always" : "never");
+  });
+
+  function closeMenu() { $("#tools-menu").hidden = true; $("#tools-btn").setAttribute("aria-expanded", "false"); }
+  $("#tools-btn").addEventListener("click", function (e) {
+    e.stopPropagation();
+    var open = $("#tools-menu").hidden;
+    $("#tools-menu").hidden = !open;
+    this.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) { var f = $("#tools-menu").querySelector(".menu-item:not([hidden])"); if (f) f.focus(); }
+  });
+  $("#tools-menu").addEventListener("click", function () { closeMenu(); });
+  document.addEventListener("click", function (e) { if (!$("#tools-wrap").contains(e.target)) closeMenu(); });
+  $("#pick").addEventListener("click", pickFolder);
+  $("#access-btn").addEventListener("click", regrantAccess);
+  $("#reload").addEventListener("click", function () {
+    if (state.source === "input") { toast("Elige la misma carpeta otra vez para actualizar la lista."); pickFolder(); }
+    else reload("always");
+  });
+  $("#q").addEventListener("input", function (e) { state.q = e.target.value; lsSet("busqueda", state.q); render(); });
+  function setMode(m) {
+    state.mode = m; lsSet("modo", m === "use" ? "use" : "config");
+    if (m === "use") { state.editing = null; state.choosing = null; if (state.view === "removed") state.view = "list"; $("#add-panel").hidden = true; }
+    render();
+  }
+  $("#mode").addEventListener("change", function (e) { setMode(e.target.value === "use" ? "use" : "config"); });
+  $("#layout").addEventListener("change", function (e) { state.layout = e.target.value; lsSet("diseno", state.layout); render(); });
+  $("#sort").addEventListener("change", function (e) { state.sort = e.target.value; lsSet("orden", state.sort); render(); });
+  document.addEventListener("keydown", function (e) {
+    var tag = (document.activeElement && document.activeElement.tagName) || "";
+    if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(tag)) { e.preventDefault(); $("#q").focus(); }
+    if (e.key === "Escape" && !$("#tools-menu").hidden) { closeMenu(); $("#tools-btn").focus(); return; }
+    if (e.key === "Escape" && !$("#add-panel").hidden) closeAdd();
+    if (e.key === "Escape" && (state.editing || state.choosing)) { state.editing = null; state.choosing = null; render(); }
+  });
+  // Al volver a esta pestaña, la lista se pone al día (solo con carpetas elegidas con el selector del navegador).
+  window.addEventListener("focus", function () {
+    var withHandles = state.source === "handle" || state.extras.some(function (x) { return x.handle; });
+    if (withHandles && !state.busy && !state.needsAccess && !state.editing && !state.choosing) reload("changes");
+  });
+
+  /* ---------- arranque ---------- */
+  pinned = lsGet("destacadas", {});
+  state.hidden = lsGet("quitadas", {});
+  state.links = lsGet("enlaces", []);
+  state.names = lsGet("nombres", {});
+  state.entryFile = lsGet("archivos", {});
+  groupOf = lsGet("grupos", {});
+  tab = String(lsGet("pestana", ""));
+  state.mode = lsGet("modo", "config") === "use" ? "use" : "config";
+  var so = lsGet("orden", "recent");
+  state.sort = so === "az" || so === "folder" ? so : "recent";
+  $("#sort").value = state.sort;
+  var ly = lsGet("diseno", "cards");
+  state.layout = ly === "list" || ly === "small" || ly === "large" ? ly : "cards";
+  $("#layout").value = state.layout;
+  state.q = String(lsGet("busqueda", ""));
+  $("#q").value = state.q;
+  render();
+  (async function init() {
+    if (window.showDirectoryPicker) {
+      try {
+        var h = await kvGet("raiz");
+        if (h) { state.source = "handle"; state.handle = h; state.rootName = h.name || "carpeta"; }
+      } catch (e) {}
+      try {
+        var apps = (await kvGet("apps")) || [];
+        apps.forEach(function (a) { if (a && a.handle) state.extras.push({ id: a.id, name: a.name, handle: a.handle, files: null, needs: false }); });
+      } catch (e) {}
+    }
+    if (state.source === "handle" || state.extras.length) await reload("never");
+    else render();
+  })();
+
+  window.__lanzador = { adoptHandle: adoptHandle, addAppHandle: addAppHandle };
+})();
+</script>
+</body>
+</html>

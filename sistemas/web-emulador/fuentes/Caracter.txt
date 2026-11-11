@@ -1,0 +1,5 @@
+# Caracteres
+caracter c1 := 'a'
+caracter c2
+c2 := 'b'
+imprimir "Caracteres" c1, c2

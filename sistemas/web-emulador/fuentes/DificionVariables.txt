@@ -1,0 +1,33 @@
+# *************************************
+# Las variables sin definición son enteros
+# Es mejor definirlas siempre
+# *************************************
+
+# Números enteros
+entero e2 := 4
+e1 := 1
+real ereal
+ereal := e1 + e2
+imprimir "Enteros " e1, e2,ereal
+
+# Números reales
+real r1 := 1.2 
+real r2
+r2 := 1.4 
+rentero := r1 + r2
+# r3 := 3.2 esta seria un entero si no se define r3
+imprimir "Reales" r1,r2,rentero
+
+
+# Caracteres
+caracter c1 := 'a'
+caracter c2
+c2 := 'b'
+imprimir "Caracteres" c1, c2
+
+#Boleanos
+booleano b1 := verdadero
+booleano b2
+b2 := verdadero
+
+imprimir "Booleanos" b1,b2

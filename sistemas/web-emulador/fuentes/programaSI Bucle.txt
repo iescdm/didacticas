@@ -1,0 +1,25 @@
+# declaración de variables
+# x es un entero
+x := 5
+
+# y es un entero
+y := 10
+
+# terminado es un booleano
+booleano terminado := verdadero
+
+# suma es un entero
+suma := 0
+
+# ciclo mientras
+# mientras terminado sea falso
+mientras terminado
+    suma := suma + x
+    # condición simple
+    imprimir suma
+    si suma >= y entonces
+        terminado := falso
+        imprimir "Falso"
+    finsi
+fin
+imprimir "FIN"

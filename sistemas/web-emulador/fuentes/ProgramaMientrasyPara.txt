@@ -1,0 +1,12 @@
+entero i := 6
+entero b
+imprimir "Inicio Programa"
+mientras i > 1
+    imprimir "Iteración Mientras", i
+    para b := 1 hasta 9 paso 2
+        imprimir "Iteracion Bucle" b
+    finpara
+    imprimir "Fin Bucle"
+    i := i - 1
+fin
+imprimir "Fin Programa"
